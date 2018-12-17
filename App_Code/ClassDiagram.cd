@@ -1,0 +1,137 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="BSM_Info.catalog_info" Collapsed="true">
+    <Position X="7.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AACAAAhAAEMAAAAkQAAAABAAAAAAIoCACAAAgAAAAAA=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BSM_Info.purchase_info_list" Collapsed="true">
+    <Position X="0.5" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ACGAAAhABUMAABAmQBQAAAAAAAAAIoSACAAAgAgAkEQ=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BSM_Info.package_service_info" Collapsed="true">
+    <Position X="5.75" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAIABAAAAAAgAEAACAAAAAAAAAAAA=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BSM_Info.package_info" Collapsed="true">
+    <Position X="2.25" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AiCBAAhSAEMWAAImQEBAAJAAAEAAIKCcCIgAsMhCAEA=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BSM_Info.package_sg_info" Collapsed="true">
+    <Position X="7.5" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAACAAAAQAAAAAAABAAAAAAAAAAACQAAAAAAAAAAA=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BSM_Info.content_info" Collapsed="true">
+    <Position X="2.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ACCBAAAAQAAIAAAAABAIAAACAQAAAAQAAAAAAAgAAAA=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BSM_Info.content_package_info" Collapsed="true">
+    <Position X="4" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQAAAACAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BSM_Info.client_detail" Collapsed="true">
+    <Position X="0.5" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ACAAAAACAAIEAAAAQIAAAAAAAAAAAgGACAAAQAAAAAA=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BSM_Info.account_info" Collapsed="true">
+    <Position X="0.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAIAAAAAAABAAABAAAQAAAAAAACAAAAAAIAAAAA=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BSM_Info.credits_detail" Collapsed="true">
+    <Position X="7.5" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAQAAAAAAAEAAAAAAAAACAAAAIABAAA=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BSM_Info.credits_balance_info" Collapsed="true">
+    <Position X="5.75" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAQBAAAEAAAAAAAAAAAAAAoAAAAA=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BSM_Info.group" Collapsed="true">
+    <Position X="0.5" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAgQAAAAAAAAACAAAAAAAAAAACAAAAAAAAAAAA=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BSM_Info.software_packages" Collapsed="true">
+    <Position X="4" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAADAAAAAAAAAAAAQAAAAAAAAAAA=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BSM_Info.BSM_Info_Service_base" Collapsed="true">
+    <Position X="5.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>CgIIAMAQiCoAgCIGAAIECACAChQIAi0AEECiEMKlSAI=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BSM_Info.BSM_CLIENT_SET" Collapsed="true">
+    <Position X="2.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAIAAAAAAAAAAIAAAAAAAAAABABAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BSM_Info.BSM_Info_Service" Collapsed="true">
+    <Position X="4" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEIQAKASCCKIAAIGAVQEAACACgABACUAAAAqkIAEQAA=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BSM_Info.Old_version.package_info" Collapsed="true">
+    <Position X="4" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>gAAAAQgAAAIAAAAAAAAAEAAAACAAIAAACAAAAAAAAAA=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BSM_Info.Old_version.result_get_package_status" Collapsed="true">
+    <Position X="2.25" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAEAABAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Struct Name="BSM_Info.get_client_val_msg" Collapsed="true">
+    <Position X="0.5" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAGAAAAAAAAAAAAAAAAAAAAAAIAAAAAAABAAAAAA=</HashCode>
+      <FileName>App_Code\BSM_Purchase_Info.cs</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Font Name="Microsoft JhengHei UI" Size="9" />
+</ClassDiagram>

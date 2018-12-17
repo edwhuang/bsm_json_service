@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "BSM_JSON_Service", ".", "{122E3C6A-6202-421A-A5F8-A86844668F2B}"
+	ProjectSection(WebsiteProperties) = preProject
+		TargetFramework = "2.0"
+		Debug.AspNetCompiler.VirtualPath = "/BSM_JSON_Service"
+		Debug.AspNetCompiler.PhysicalPath = "..\..\..\Dropbox\BSM_JSON_Service\"
+		Debug.AspNetCompiler.TargetPath = "PrecompiledWeb\BSM_JSON_Service\"
+		Debug.AspNetCompiler.Updateable = "true"
+		Debug.AspNetCompiler.ForceOverwrite = "true"
+		Debug.AspNetCompiler.FixedNames = "false"
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.VirtualPath = "/BSM_JSON_Service"
+		Release.AspNetCompiler.PhysicalPath = "..\..\..\Dropbox\BSM_JSON_Service\"
+		Release.AspNetCompiler.TargetPath = "PrecompiledWeb\BSM_JSON_Service\"
+		Release.AspNetCompiler.Updateable = "true"
+		Release.AspNetCompiler.ForceOverwrite = "true"
+		Release.AspNetCompiler.FixedNames = "false"
+		Release.AspNetCompiler.Debug = "False"
+		VWDPort = "4591"
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|.NET = Debug|.NET
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{122E3C6A-6202-421A-A5F8-A86844668F2B}.Debug|.NET.ActiveCfg = Debug|.NET
+		{122E3C6A-6202-421A-A5F8-A86844668F2B}.Debug|.NET.Build.0 = Debug|.NET
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

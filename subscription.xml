@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?> 
+<U-MAX>
+	<ReverseSubscription>
+		<MIN>1188519xxx</MIN>
+		<SPCode>800xx</SPCode>
+		<ProductCode>8002300xxx</ProductCode>
+		<TransactionID>111111111ABCDEFGHIJKLMNOPQRSTUVWXYZabcd</TransactionID>
+	</ReverseSubscription>
+</U-MAX>
