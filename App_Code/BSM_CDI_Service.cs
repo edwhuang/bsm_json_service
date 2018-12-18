@@ -637,6 +637,7 @@ namespace BSM
             string device_id,
             string action_date,
             string cancel_date,
+            string expire_date,
             string orig_order_id)
         {
             JsonObject _result = new JsonObject();
@@ -657,6 +658,7 @@ namespace BSM
             _partner_order.Add("action_date", action_date);
             _partner_order.Add("cancel_date", cancel_date);
             _partner_order.Add("orig_order_id", orig_order_id);
+            _partner_order.Add("expire_date", expire_date);
 
             string p_params;
             p_params = JsonConvert.ExportToString(_partner_order);

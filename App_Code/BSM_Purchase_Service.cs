@@ -2,6 +2,7 @@
 using System.Web;
 using System.Web.Services;
 using System.Web.Services.Protocols;
+using System.Threading;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
@@ -1183,34 +1184,49 @@ namespace BSM
         public string WebRequest(string url, string postData)
         {
             string ret = string.Empty;
+            int retry = 3;
 
           //  StreamWriter requestWriter;
             ASCIIEncoding ascii = new ASCIIEncoding();
 
             byte[] postBytes=Encoding.UTF8.GetBytes(postData);
 
-            var webRequest = System.Net.WebRequest.Create(url) as HttpWebRequest;
-            if (webRequest != null)
+            while (retry > 0)
             {
-                webRequest.Method = "POST";
-                webRequest.ServicePoint.Expect100Continue = false;
-                webRequest.Timeout = 20000;
-                webRequest.ContentType = "application/json";
-              
-                webRequest.ContentLength = postBytes.Length;
-                using (var requestWriter = webRequest.GetRequestStream())
+
+                try
                 {
-                    requestWriter.Write(postBytes, 0,postBytes.Length);
-                    requestWriter.Flush();
-                    
-                } 
 
+                    var webRequest = System.Net.WebRequest.Create(url) as HttpWebRequest;
+                    if (webRequest != null)
+                    {
+                        webRequest.Method = "POST";
+                        webRequest.ServicePoint.Expect100Continue = false;
+                        webRequest.Timeout = 20000;
+                        webRequest.ContentType = "application/json";
+
+                        webRequest.ContentLength = postBytes.Length;
+                        using (var requestWriter = webRequest.GetRequestStream())
+                        {
+                            requestWriter.Write(postBytes, 0, postBytes.Length);
+                            requestWriter.Flush();
+
+                        }
+
+                    }
+
+                    HttpWebResponse resp = (HttpWebResponse)webRequest.GetResponse();
+                    Stream resStream = resp.GetResponseStream();
+                    StreamReader reader = new StreamReader(resStream);
+                    ret = reader.ReadToEnd();
+                    retry = 0;
+                }
+                catch (Exception e)
+                {
+                    retry--;
+                    Thread.Sleep(5000);
+                }
             }
-
-            HttpWebResponse resp = (HttpWebResponse)webRequest.GetResponse();
-            Stream resStream = resp.GetResponseStream();
-            StreamReader reader = new StreamReader(resStream);
-            ret = reader.ReadToEnd();
 
             return ret;
         }
