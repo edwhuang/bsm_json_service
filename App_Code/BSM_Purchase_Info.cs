@@ -953,7 +953,7 @@ namespace BSM_Info
 
             account_info acc_info = get_account_info(client_id, device_id);
 
-            if (acc_info != null) _result= acc_info.services;
+            if (acc_info != null && acc_info.services != null) _result = acc_info.services;
             else
                 _result= get_catalog_info_oracle(client_id, device_id, sw_version);
 
@@ -1844,6 +1844,8 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             {
                 return acc_info;
             }
+            else
+            {
 
             account_info _acc_info = new account_info();
             _acc_info._id = client_id;
@@ -1854,11 +1856,12 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             _acc_info.purchase_dtls = get_purchase_info_oracle(client_id);
             _acc_info.services = get_catalog_info_oracle(client_id, device_id, null);
             _acc_info.activation_code = get_activation_code_oracle(client_id);
-            
+            return _acc_info;
+            }
 
        //     account_collection.Save(_acc_info);
 
-            return _acc_info;
+            
 
 
         }

@@ -638,7 +638,10 @@ namespace BSM
             string action_date,
             string cancel_date,
             string expire_date,
-            string orig_order_id)
+            string orig_order_id,
+            int? offset,
+            string remark,
+            Boolean? purge_flg)
         {
             JsonObject _result = new JsonObject();
             JsonObject _partner_order = new JsonObject();
@@ -659,6 +662,9 @@ namespace BSM
             _partner_order.Add("cancel_date", cancel_date);
             _partner_order.Add("orig_order_id", orig_order_id);
             _partner_order.Add("expire_date", expire_date);
+            _partner_order.Add("offset", offset);
+            _partner_order.Add("remrk", remark);
+            _partner_order.Add("purge_flg", purge_flg);
 
             string p_params;
             p_params = JsonConvert.ExportToString(_partner_order);
