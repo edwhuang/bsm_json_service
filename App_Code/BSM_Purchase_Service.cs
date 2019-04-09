@@ -169,10 +169,10 @@ namespace BSM
                 _client_info.mac_address = t_client_info.MAC_ADDRESS;
                 _client_info.client_status = t_client_info.STATUS_FLG;
 
-                if (bsm_result.RESULT_CODE != "BSM-00000")
+                if (bsm_result.result_code != "BSM-00000")
                 {
-                    _result.result_code = bsm_result.RESULT_CODE;
-                    _result.result_message = bsm_result.RESULT_MESSAGE;
+                    _result.result_code = bsm_result.result_code;
+                    _result.result_message = bsm_result.result_message;
                     _result.client = client_info;
                     return _result;
                 }
@@ -291,10 +291,10 @@ namespace BSM
                 _client_info.mac_address = t_client_info.MAC_ADDRESS;
                 _client_info.client_status = t_client_info.STATUS_FLG;
 
-                if (bsm_result.RESULT_CODE != "BSM-00000")
+                if (bsm_result.result_code != "BSM-00000")
                 {
-                    _result.result_code = bsm_result.RESULT_CODE;
-                    _result.result_message = bsm_result.RESULT_MESSAGE;
+                    _result.result_code = bsm_result.result_code;
+                    _result.result_message = bsm_result.result_message;
                     _result.client = _client_info;
                     return _result;
                 }
@@ -305,8 +305,8 @@ namespace BSM
                 cmd.Dispose();
             }
 
-            _result.result_code = bsm_result.RESULT_CODE;
-            _result.result_message = bsm_result.RESULT_MESSAGE;
+            _result.result_code = bsm_result.result_code;
+            _result.result_message = bsm_result.result_message;
             _result.client = _client_info;
 
             // send mesage to MSMQ
@@ -665,18 +665,18 @@ namespace BSM
 
                 BSM_Info_base.refresh_client(purchase_info.client_id);
 
-                if (bsm_result.RESULT_CODE != "BSM-00000")
+                if (bsm_result.result_code != "BSM-00000")
                 {
-                    result.result_code = bsm_result.RESULT_CODE;
-                    result.result_message = bsm_result.RESULT_MESSAGE;
+                    result.result_code = bsm_result.result_code;
+                    result.result_message = bsm_result.result_message;
                     result.purchase_id = bsm_purchase.MAS_NO;
                     
                 }
                 else
                 {
                     
-                    result.result_code = bsm_result.RESULT_CODE;
-                    result.result_message = bsm_result.RESULT_MESSAGE;
+                    result.result_code = bsm_result.result_code;
+                    result.result_message = bsm_result.result_message;
                     result.purchase_id = bsm_purchase.MAS_NO;
                 }
 
@@ -827,16 +827,16 @@ namespace BSM
 
                 bsm_result = (TBSM_RESULT)param3.Value;
                 coupon_mas_no = param4.Value.ToString();
-                if (bsm_result.RESULT_CODE == "BSM-00000")
+                if (bsm_result.result_code == "BSM-00000")
                 {
                     BSM_Info_base.refresh_client(client_info.client_id);
                     _result.purchase_list = BSM_Info_base.get_purchase_info(client_info.client_id, client_info.mac_address, coupon_mas_no);
                 }
 
-                if (bsm_result.RESULT_CODE != "BSM-00000")
+                if (bsm_result.result_code != "BSM-00000")
                 {
-                    _result.result_code = bsm_result.RESULT_CODE;
-                    _result.result_message = bsm_result.RESULT_MESSAGE;
+                    _result.result_code = bsm_result.result_code;
+                    _result.result_message = bsm_result.result_message;
                     _result.client = v_Client_Info;
                     return _result;
                 }
@@ -847,8 +847,8 @@ namespace BSM
                 cmd.Dispose();
             }
 
-            _result.result_code = bsm_result.RESULT_CODE;
-            _result.result_message = bsm_result.RESULT_MESSAGE;
+            _result.result_code = bsm_result.result_code;
+            _result.result_message = bsm_result.result_message;
             _result.client = v_Client_Info;
             logger.Info(JsonConvert.ExportToString(_result));
             return _result;

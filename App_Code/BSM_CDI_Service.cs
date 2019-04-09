@@ -390,22 +390,22 @@ namespace BSM
                         _client_info.mac_address = t_client_info.MAC_ADDRESS;
                         _client_info.client_status = t_client_info.STATUS_FLG;
 
-                        if (bsm_result.RESULT_CODE != "BSM-00000")
+                        if (bsm_result.result_code != "BSM-00000")
                         {
-                            _result.result_code = bsm_result.RESULT_CODE;
-                            _result.result_message = bsm_result.RESULT_MESSAGE;
+                            _result.result_code = bsm_result.result_code;
+                            _result.result_message = bsm_result.result_message;
                             _result.client = _client_info;
                             return _result;
                         }
                         else
                         {
-                            _result.result_code = bsm_result.RESULT_CODE;
-                            _result.result_message = bsm_result.RESULT_MESSAGE;
+                            _result.result_code = bsm_result.result_code;
+                            _result.result_message = bsm_result.result_message;
                             _result.client = _client_info;
-                            if(bsm_result.RESULT_MESSAGE!= null)
-                            if (bsm_result.RESULT_MESSAGE.IndexOf("message:") >= 0)
+                            if(bsm_result.result_message!= null)
+                            if (bsm_result.result_message.IndexOf("message:") >= 0)
                             {
-                                string p_msg_str = bsm_result.RESULT_MESSAGE.Replace("message:", "");
+                                string p_msg_str = bsm_result.result_message.Replace("message:", "");
                                 JsonObject p_message = (JsonObject)JsonConvert.Import(p_msg_str);
                                 _result.message =  p_message;
 
@@ -692,7 +692,16 @@ namespace BSM
                     cmd.ExecuteNonQuery();
                     result = param_result.Value.ToString();
                     logger.Info(result);
-                    _result = JsonConvert.Import<JsonObject>(new StringReader(result));
+                    try
+                    {
+                        _result = JsonConvert.Import<JsonObject>(new StringReader(result));
+                    }
+                    catch (Exception e)
+                    {
+                        _result = new JsonObject();
+                        _result.Add("result_code", "BSM-00803");
+                        _result.Add("result_message", result);
+                    }
 
                 }
                 finally
@@ -704,8 +713,8 @@ namespace BSM
             {
                 logger.Info(e.Message);
                 _result = new JsonObject();
-                _result.Add("RESULT_CODE", "BSM-00803");
-                _result.Add("RESULT_MESSAGE", e.Message);
+                _result.Add("result_code", "BSM-00803");
+                _result.Add("result_message", e.Message);
             }
             finally
             {
@@ -936,16 +945,16 @@ namespace BSM
                 bsm_result = (TBSM_RESULT)param2.Value;
                 bsm_purchase = (TBSM_PURCHASE)param1.Value;
 
-                if (bsm_result.RESULT_CODE != "BSM-00000")
+                if (bsm_result.result_code != "BSM-00000")
                 {
-                    result.result_code = bsm_result.RESULT_CODE;
-                    result.result_message = bsm_result.RESULT_MESSAGE;
+                    result.result_code = bsm_result.result_code;
+                    result.result_message = bsm_result.result_message;
                     result.purchase_id = bsm_purchase.MAS_NO;
                 }
                 else
                 {
-                    result.result_code = bsm_result.RESULT_CODE;
-                    result.result_message = bsm_result.RESULT_MESSAGE;
+                    result.result_code = bsm_result.result_code;
+                    result.result_message = bsm_result.result_message;
                     result.purchase_id = bsm_purchase.MAS_NO;
                 }
 

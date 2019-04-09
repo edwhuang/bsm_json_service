@@ -957,7 +957,7 @@ namespace BSM_Info
             else
                 _result= get_catalog_info_oracle(client_id, device_id, sw_version);
 
-            _result = (from _c in _result where _c.device_id == "" || _c.device_id == device_id select _c).ToList();
+           // _result = (from _c in _result where _c.device_id == "" || _c.device_id == device_id select _c).ToList();
             return _result;
         }
 
