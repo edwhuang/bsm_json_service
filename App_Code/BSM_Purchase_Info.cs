@@ -974,7 +974,7 @@ namespace BSM_Info
 
                 _sql = @"with cte as (
 Select case when cal_type = 'T' then
-              t.package_name 
+              t.package_name
             else
               t2.package_cat1
             end package_cat1,
@@ -1007,24 +1007,33 @@ Select case when cal_type = 'T' then
               end
           end package_status_flg,
         max(t.pk_no) detail_pk_no,
-        t2.package_cat_id1,
+       case when t.package_id='XD0005' and t4.pay_type='GOOGLEPLAY' then
+              'VOD_CHANNEL_DELUX_Y' 
+            else
+              t2.package_cat_id1
+            end package_cat_id1,
         t.device_id
-         from bsm_client_details t,bsm_package_mas t2
+         from bsm_client_details t,bsm_package_mas t2,bsm_purchase_mas t4
  where t.status_flg = 'P'
    and t.package_id in (Select t2.package_id from bsm_package_mas t2 where system_type <> 'CLIENT_ACTIVED')
    and t.package_id not in ('CHG003','CH4G06')  
    and t2.package_id= t.package_id
    and t2.acl_period is null
+   and t.src_pk_no=t4.pk_no (+)
    and t.mac_address=:CLIENT_ID
- group by
-          case when cal_type = 'T' then
-              t.package_name 
-            else
+ group by case
+          when cal_type = 'T' then
+              t.package_name
+           else
               t2.package_cat1
-            end ,
+            end  ,
           t2.cal_type,
           t2.package_cat1,
-          t2.package_cat_id1,
+                 case when t.package_id='XD0005' and t4.pay_type='GOOGLEPLAY' then
+              'VOD_CHANNEL_DELUX_Y' 
+            else
+              t2.package_cat_id1
+            end,
           t.item_id,
           t.device_id
           )

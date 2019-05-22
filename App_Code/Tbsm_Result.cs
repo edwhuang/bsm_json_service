@@ -46,8 +46,8 @@ namespace BsmDatabaseObjects
                 return obj;
             }
         }
-        
-        [OracleObjectMappingAttribute("result_code")]
+
+        [OracleObjectMappingAttribute("RESULT_CODE")]
         public string result_code {
             get {
                 return this.m_result_code;
@@ -57,7 +57,7 @@ namespace BsmDatabaseObjects
             }
         }
         
-        [OracleObjectMappingAttribute("result_message")]
+        [OracleObjectMappingAttribute("RESULT_MESSAGE")]
         public string result_message {
             get {
                 return this.m_result_message;
@@ -68,13 +68,13 @@ namespace BsmDatabaseObjects
         }
         
         public virtual void FromCustomObject(Oracle.DataAccess.Client.OracleConnection con, System.IntPtr pUdt) {
-            Oracle.DataAccess.Types.OracleUdt.SetValue(con, pUdt, "result_code", this.result_code);
-            Oracle.DataAccess.Types.OracleUdt.SetValue(con, pUdt, "result_message", this.result_message);
+            Oracle.DataAccess.Types.OracleUdt.SetValue(con, pUdt, "RESULT_CODE", this.result_code);
+            Oracle.DataAccess.Types.OracleUdt.SetValue(con, pUdt, "RESULT_MESSAGE", this.result_message);
         }
         
         public virtual void ToCustomObject(Oracle.DataAccess.Client.OracleConnection con, System.IntPtr pUdt) {
-            this.result_code = ((string)(Oracle.DataAccess.Types.OracleUdt.GetValue(con, pUdt, "result_code")));
-            this.result_message = ((string)(Oracle.DataAccess.Types.OracleUdt.GetValue(con, pUdt, "result_message")));
+            this.result_code = ((string)(Oracle.DataAccess.Types.OracleUdt.GetValue(con, pUdt, "RESULT_CODE")));
+            this.result_message = ((string)(Oracle.DataAccess.Types.OracleUdt.GetValue(con, pUdt, "RESULT_MESSAGE")));
         }
         
         public virtual void ReadXml(System.Xml.XmlReader reader) {

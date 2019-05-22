@@ -641,6 +641,7 @@ namespace BSM
             string orig_order_id,
             int? offset,
             string remark,
+            string vendor_package_id,
             Boolean? purge_flg)
         {
             JsonObject _result = new JsonObject();
@@ -665,6 +666,7 @@ namespace BSM
             _partner_order.Add("offset", offset);
             _partner_order.Add("remrk", remark);
             _partner_order.Add("purge_flg", purge_flg);
+            _partner_order.Add("vendor_package_id", vendor_package_id);
 
             string p_params;
             p_params = JsonConvert.ExportToString(_partner_order);
