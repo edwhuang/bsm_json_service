@@ -476,6 +476,8 @@ namespace BSM_Info
         public string recurrent; //是否可Recurrent
         public string next_pay_date; //下次購款日
         public string current_recurrent_status;  //目前recurrent 狀態
+        public string current_recurrent_package; //目前recurrent 狀態
+        
         public string credits_remind; //使用點數提醒
         public string[] pay_method_list; //付款方式
         public string system_type;
@@ -1007,11 +1009,8 @@ Select case when cal_type = 'T' then
               end
           end package_status_flg,
         max(t.pk_no) detail_pk_no,
-       case when t.package_id='XD0005' and t4.pay_type='GOOGLEPLAY' then
-              'VOD_CHANNEL_DELUX_Y' 
-            else
               t2.package_cat_id1
-            end package_cat_id1,
+           package_cat_id1,
         t.device_id
          from bsm_client_details t,bsm_package_mas t2,bsm_purchase_mas t4
  where t.status_flg = 'P'
@@ -1029,17 +1028,15 @@ Select case when cal_type = 'T' then
             end  ,
           t2.cal_type,
           t2.package_cat1,
-                 case when t.package_id='XD0005' and t4.pay_type='GOOGLEPLAY' then
-              'VOD_CHANNEL_DELUX_Y' 
-            else
+                
               t2.package_cat_id1
-            end,
+          ,
           t.item_id,
           t.device_id
           )
 select cte.package_cat1,t3.supply_name||t3.package_name package_name,cte.start_date,cte.end_date,PACKAGE_DES_HTML,PRICE_DES,package_status,logo,t2.package_id,package_type,system_type,
-decode(BSM_RECURRENT_UTIL.check_recurrent(cte.package_cat_id1, :CLIENT_ID,:DEVICE_ID),'Y','R','O') recurrent,
-decode(BSM_RECURRENT_UTIL.check_recurrent(cte.package_cat_id1, :CLIENT_ID,:DEVICE_ID),'Y',to_char(BSM_RECURRENT_UTIL.get_service_end_date(cte.package_cat_id1, :CLIENT_ID),'YYYY/MM/DD'),'無') next_pay_date,
+decode(BSM_RECURRENT_UTIL.check_recurrent_2(cte.package_cat_id1, :CLIENT_ID,:DEVICE_ID),'Y','R','O') recurrent,
+decode(BSM_RECURRENT_UTIL.check_recurrent_2(cte.package_cat_id1, :CLIENT_ID,:DEVICE_ID),'Y',to_char(BSM_RECURRENT_UTIL.get_service_end_date(cte.package_cat_id1, :CLIENT_ID),'YYYY/MM/DD'),'無') next_pay_date,
 cte.package_cat_id1,
 cte.package_status_flg,
 cte.device_id
@@ -2146,6 +2143,8 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
                         _a.use_status = used ?? "N";
                         _a.status_description = package_status??"未購買";
                         _a.current_recurrent_status = ((from a in _detail_packages where a.recurrent == "R" select a).Count() > 0) ? "R" : "O";
+                        _a.current_recurrent_package = ((from a in _detail_packages where a.recurrent == "R" && a.package_id==_a.package_id select a).Count() > 0) ? "Y" : "N";
+
                         _a.next_pay_date = (_a.current_recurrent_status == "R") ? end_date : null;
                         _a.package_status = (_a.current_recurrent_status == "R") ? "N" : "Y";
                         _a.package_status_message = (_a.current_recurrent_status == "R") ? "已使用自動扣款" : null; 
