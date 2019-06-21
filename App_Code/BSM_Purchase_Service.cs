@@ -20,10 +20,25 @@ using System.Text;
 using log4net;
 using log4net.Config;
 using System.Web.Security;
+using MongoDB.Bson;
+using MongoDB.Driver;
+using MongoDB.Driver.Builders;
+using MongoDB.Driver.GridFS;
+using MongoDB.Driver.Linq;
+
 
 namespace BSM
 {
 
+    public class ios_receipt_info
+    {   public string _id;
+        public string ticket_uid;
+        public string password;
+        public string ios_product_code;
+        public string client_id;
+        public string package_id;
+        public string receipt;
+    }
 
     public class BSM_Purchase_Service : JsonRpcHandler
     {
@@ -36,6 +51,7 @@ namespace BSM
         private string MongoDBConnectString_package;
         private string IOS_URL;
         private string MongoDB_Database;
+        private string MongoDB;
 
         public BSM_Purchase_Service()
         {
@@ -57,6 +73,7 @@ namespace BSM
                 MongoDBConnectString_package = rootWebConfig.ConnectionStrings.ConnectionStrings["MongoDb_package"].ToString();
 
                 MongoDB_Database = rootWebConfig.ConnectionStrings.ConnectionStrings["MongoDb_Database"].ToString();
+                MongoDB= MongoDB_Database+"ClientInfo";
             }
 
             MsgQ_Active = new MessageQueue(".\\Private$\\bsm_client_activate");
@@ -501,6 +518,24 @@ namespace BSM
                             _cmd_rep.Parameters.Add("CLIENT_ID", purchase_info.client_id);
                             _cmd_rep.Parameters.Add("PACKAGE_ID", purchase_info.details[0].package_id);
                             _cmd_rep.ExecuteNonQuery();
+
+                            try
+                            {
+
+                                ios_receipt_info _ios_receipt_info;
+                                _ios_receipt_info = new ios_receipt_info();
+                                _ios_receipt_info._id = _purchase_pk_no.ToString();
+                                _ios_receipt_info.client_id = Convert.ToString(_rd["CLIENT_ID"]);
+                                _ios_receipt_info.password = "c7cdbd0220b54ab99af16548b0f27733";
+                                _ios_receipt_info.package_id = purchase_info.details[0].package_id;
+                                _ios_receipt_info.receipt = ticket;
+                                _ios_receipt_info.ticket_uid = ticket_uid;
+
+                                mongo_save_ios_receipt(_ios_receipt_info);
+                            }
+                            catch
+                            { };
+
                         }
                         finally
                         {
@@ -1028,61 +1063,82 @@ namespace BSM
             return null;
         }
 
-
-
-
         [JsonRpcMethod("ios_verifyReceipt")]
         public JsonObject ios_verifyReceipt(int order_pk_no, string p_receipt, string p_password)
         {
             JsonObject _json_result = new JsonObject();
-            conn.Open();
-            try
+            ios_receipt_info _ios_receipt_info;
+
+            _ios_receipt_info = mongo_load_ios_receipt(order_pk_no);
+
+            if (_ios_receipt_info == null)
             {
-                string _sql = "SELECT RECEIPT,PASSWORD from BSM_IOS_RECEIPT_MAS WHERE MAS_PK_NO=:P_PK_NO AND ROWNUM <=1";
-                OracleCommand cmd = new OracleCommand(_sql, conn);
-                cmd.BindByName = true;
-                cmd.Parameters.Add("P_PK_NO", order_pk_no);
-                OracleDataReader _rd = cmd.ExecuteReader();
-                if (_rd.Read())
+                conn.Open();
+                try
                 {
-                    try
+                    string _sql = "SELECT RECEIPT,PASSWORD,TICKET_UID,CLIENT_ID,PACKAGE_ID from BSM_IOS_RECEIPT_MAS WHERE MAS_PK_NO=:P_PK_NO AND ROWNUM <=1";
+                    OracleCommand cmd = new OracleCommand(_sql, conn);
+                    cmd.BindByName = true;
+                    cmd.Parameters.Add("P_PK_NO", order_pk_no);
+                    OracleDataReader _rd = cmd.ExecuteReader();
+                    if (_rd.Read())
                     {
-                        JsonObject jo = (JsonObject)JsonConvert.Import(typeof(JsonObject), Convert.ToString(_rd["RECEIPT"]));
-                        p_receipt = jo["ios_receipt_info"].ToString();
+                        try
+                        {
+                            JsonObject jo = (JsonObject)JsonConvert.Import(typeof(JsonObject), Convert.ToString(_rd["RECEIPT"]));
+                            p_receipt = jo["ios_receipt_info"].ToString();
+                        }
+                        catch (Jayrock.Json.JsonException e)
+                        {
+                            JsonArray ja = (JsonArray)JsonConvert.Import(typeof(JsonArray), Convert.ToString(_rd["RECEIPT"]));
+
+                            p_receipt = ja[0].ToString();
+
+                        }
+                        p_password = Convert.ToString(_rd["PASSWORD"]);
+
+                        _ios_receipt_info = new ios_receipt_info();
+                        _ios_receipt_info._id = order_pk_no.ToString();
+                        _ios_receipt_info.client_id = Convert.ToString(_rd["CLIENT_ID"]);
+                        _ios_receipt_info.password = Convert.ToString(_rd["PASSWORD"]);
+                        _ios_receipt_info.receipt = Convert.ToString(_rd["RECEIPT"]);
+                        _ios_receipt_info.ticket_uid = Convert.ToString(_rd["TICKET_UID"]);
+
+                        mongo_save_ios_receipt(_ios_receipt_info);
+
+
                     }
-                    catch (Jayrock.Json.JsonException e)
-                    {
-                        JsonArray ja = (JsonArray)JsonConvert.Import(typeof(JsonArray), Convert.ToString(_rd["RECEIPT"]));
 
-                        p_receipt = ja[0].ToString();
-
-                    }
-                    p_password = Convert.ToString(_rd["PASSWORD"]);
-
-                    string _result = "";
-                    JsonObject _jsonObject = new JsonObject();
-                    _jsonObject.Add("receipt-data", p_receipt);
-                    _jsonObject.Add("password", p_password);
-                    string _post_data = JsonConvert.ExportToString(_jsonObject);
-                    string url = IOS_URL;
-                   // string url = @"https://buy.itunes.apple.com/verifyReceipt";
-                  //  string url = @"https://sandbox.itunes.apple.com/verifyReceipt";
-                    ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
-                    _result = WebRequest(url, _post_data);
-                    _json_result = (JsonObject)JsonConvert.Import(typeof(JsonObject), _result);
-                    _json_result["latest_receipt"] = null;
                 }
-
+                finally
+                { conn.Close(); }
+                _json_result = _ios_verifyReceipt("", p_receipt, p_password);
+                _json_result["latest_receipt"] = null;
             }
-            finally
-            { conn.Close(); }
+            else
+            {
+                try
+                {
+                    JsonObject jo = (JsonObject)JsonConvert.Import(typeof(JsonObject), _ios_receipt_info.receipt);
+                    p_receipt = jo["ios_receipt_info"].ToString();
+                }
+                catch (Jayrock.Json.JsonException e)
+                {
+                    JsonArray ja = (JsonArray)JsonConvert.Import(typeof(JsonArray), _ios_receipt_info.receipt);
+
+                    p_receipt = ja[0].ToString();
+
+                }
+                _json_result = _ios_verifyReceipt("", p_receipt, _ios_receipt_info.password);
+                _json_result["latest_receipt"] = null;
+            }
+
             return _json_result;
         }
 
         private JsonObject _ios_verifyReceipt(string src_pk_no, string p_receipt, string p_password)
         {
             JsonObject _json_result = new JsonObject();
-            conn.Open();
             try
             {
                 string _result = "";
@@ -1091,14 +1147,12 @@ namespace BSM
                 _jsonObject.Add("password", p_password);
                 string _post_data = JsonConvert.ExportToString(_jsonObject);
                 string url = IOS_URL;
-             //   string url = @"https://buy.itunes.apple.com/verifyReceipt";
-               // string url = @"https://sandbox.itunes.apple.com/verifyReceipt";
                 ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
                 _result = WebRequest(url, _post_data);
                 _json_result = (JsonObject)JsonConvert.Import(typeof(JsonObject), _result);
             }
             finally
-            { conn.Close(); }
+            {  }
             return _json_result;
         }
 
@@ -1123,6 +1177,33 @@ namespace BSM
             finally
             { conn.Close(); }
             return _json_result;
+        }
+
+        public void mongo_save_ios_receipt(ios_receipt_info _ios_receipt_info)
+        {
+            MongoClient _MongoClient = new MongoClient(MongoDBConnectString);
+            MongoServer _MongoServer = _MongoClient.GetServer();
+            MongoDatabase _MongoDB_ClientInfo = _MongoServer.GetDatabase(MongoDB);
+            MongoCollection<ios_receipt_info> _c_ios_receipts = _MongoDB_ClientInfo.GetCollection<ios_receipt_info>("ios_receipts");
+
+            _c_ios_receipts.Save(_ios_receipt_info);
+            
+        }
+
+        public ios_receipt_info mongo_load_ios_receipt(int order_pk_no)
+        {
+            ios_receipt_info _ios_receipt_info;
+            MongoClient _MongoClient = new MongoClient(MongoDBConnectString);
+            MongoServer _MongoServer = _MongoClient.GetServer();
+            MongoDatabase _MongoDB_ClientInfo = _MongoServer.GetDatabase(MongoDB);
+            MongoCollection<ios_receipt_info> _c_ios_receipts = _MongoDB_ClientInfo.GetCollection<ios_receipt_info>("ios_receipts");
+            try
+            {
+                _ios_receipt_info = (ios_receipt_info)_c_ios_receipts.FindOne(Query.EQ("_id", new BsonString(order_pk_no.ToString())));
+                return _ios_receipt_info;
+            }
+            catch
+            { return null; }
         }
 
         [JsonRpcMethod("httpRequest")]
@@ -1178,8 +1259,6 @@ namespace BSM
             }
 
         }
-
-
 
         public string WebRequest(string url, string postData)
         {
