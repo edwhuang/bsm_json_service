@@ -629,6 +629,7 @@ namespace BSM
             string name,
             string email,
             string order_id,
+            string bsm_order_id,
             string order_date,
             string software_group,
             string package_id,
@@ -653,6 +654,7 @@ namespace BSM
             _partner_order.Add("name", name);
             _partner_order.Add("email", email);
             _partner_order.Add("order_id", order_id);
+            _partner_order.Add("bsm_order_id", bsm_order_id);
             _partner_order.Add("order_date", order_date);
             _partner_order.Add("software_group", software_group);
             _partner_order.Add("package_id", package_id);

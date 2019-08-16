@@ -31,13 +31,53 @@ namespace BSM
 {
 
     public class ios_receipt_info
-    {   public string _id;
+    {
+        public string _id;
         public string ticket_uid;
         public string password;
         public string ios_product_code;
         public string client_id;
         public string package_id;
         public string receipt;
+    }
+
+
+    public class IOS_ReceiptInfo
+    {
+        public string _id;
+        public string original_purchase_date_pst { get; set; }
+        public string quantity { get; set; }
+        public string unique_vendor_identifier { get; set; }
+        public string bvrs { get; set; }
+        public string expires_date_formatted { get; set; }
+        public string is_in_intro_offer_period { get; set; }
+        public string purchase_date_ms { get; set; }
+        public string expires_date_formatted_pst { get; set; }
+        public string is_trial_period { get; set; }
+        public string item_id { get; set; }
+        public string unique_identifier { get; set; }
+        public string original_transaction_id { get; set; }
+        public string expires_date { get; set; }
+        public string app_item_id { get; set; }
+        public string transaction_id { get; set; }
+        public string web_order_line_item_id { get; set; }
+        public string version_external_identifier { get; set; }
+        public string product_id { get; set; }
+        public string purchase_date { get; set; }
+        public string original_purchase_date { get; set; }
+        public string purchase_date_pst { get; set; }
+        public string bid { get; set; }
+        public string original_purchase_date_ms { get; set; }
+    }
+
+    public class IOS_Result
+    {
+        public int? auto_renew_status { get; set; }
+        public int? status { get; set; }
+        public string auto_renew_product_id { get; set; }
+        public IOS_ReceiptInfo receipt { get; set; }
+        public IOS_ReceiptInfo latest_receipt_info { get; set; }
+        public object latest_receipt { get; set; }
     }
 
     public class BSM_Purchase_Service : JsonRpcHandler
@@ -73,7 +113,7 @@ namespace BSM
                 MongoDBConnectString_package = rootWebConfig.ConnectionStrings.ConnectionStrings["MongoDb_package"].ToString();
 
                 MongoDB_Database = rootWebConfig.ConnectionStrings.ConnectionStrings["MongoDb_Database"].ToString();
-                MongoDB= MongoDB_Database+"ClientInfo";
+                MongoDB = MongoDB_Database + "ClientInfo";
             }
 
             MsgQ_Active = new MessageQueue(".\\Private$\\bsm_client_activate");
@@ -347,7 +387,7 @@ namespace BSM
             BSM_Result result;
             result = new BSM_Result();
             return result;
-            
+
         }
 
         /// <summary>
@@ -358,7 +398,7 @@ namespace BSM
         /// <returns></returns>
         [JsonRpcMethod("purchase")]
         [JsonRpcHelp("Client 購買")]
-        public BSM_Result purchase(string token, string device_id, string sw_version, BSM_Purchase_Request purchase_info,string vendor_id)
+        public BSM_Result purchase(string token, string device_id, string sw_version, BSM_Purchase_Request purchase_info, string vendor_id)
         {
 
             BSM_Result result;
@@ -409,7 +449,7 @@ namespace BSM
             _option.Add("ios_receipt_info", purchase_info.ios_receipt_info);
             _option.Add("order", purchase_info.order);
             if (purchase_info.promote_code != "" && !(purchase_info.promote_code == null))
-            { _option.Add("promo_code", purchase_info.promote_code);  }
+            { _option.Add("promo_code", purchase_info.promote_code); }
             else
             {
                 _option.Add("promo_code", purchase_info.promo_code);
@@ -467,139 +507,188 @@ namespace BSM
             if (purchase_info.pay_type == "IOS")
             {
 
-                
+
                 string ticket = JsonConvert.ExportToString(purchase_info.ios_receipt_info);
                 string ticket_uid = FormsAuthentication.HashPasswordForStoringInConfigFile(ticket, "MD5");
                 long _purchase_pk_no = 0;
 
-               
+                JsonObject ios_result = _ios_verifyReceipt(null, purchase_info.ios_receipt_info, "c7cdbd0220b54ab99af16548b0f27733");
+                JsonObject _receipt = new JsonObject();
+                IOS_ReceiptInfo _rec = new IOS_ReceiptInfo();
+                List<IOS_ReceiptInfo> _rec_l = new List<IOS_ReceiptInfo>();
 
-                    JsonObject ios_result = _ios_verifyReceipt(null, purchase_info.ios_receipt_info, "c7cdbd0220b54ab99af16548b0f27733");
-                    JsonObject _receipt = (JsonObject)ios_result["receipt"];
+                if (ios_result["status"].ToString() == "21007")
+                {
+                    ios_result = _ios_verifyReceipt_sandbox(null, purchase_info.ios_receipt_info, "c7cdbd0220b54ab99af16548b0f27733");
+                    _receipt = (JsonObject)ios_result["receipt"];
+                }
 
-
-                    if (ios_result["status"].ToString() == "21007")
+                if (ios_result["status"].ToString() == "0")
+                {
+                    if (ios_result["receipt"] != null)
                     {
-                        ios_result = _ios_verifyReceipt_sandbox(null, purchase_info.ios_receipt_info, "c7cdbd0220b54ab99af16548b0f27733");
-                        _receipt = (JsonObject)ios_result["receipt"];
-                    }
-                    
-                    if (ios_result["status"].ToString() == "0")
-                    {
-                        conn.Open();
-                        try
+                        _receipt = (JsonObject) ios_result["receipt"];
+                        if (_receipt["in_app"] != null)
                         {
-                            string _sql_pk_tick = "SELECT 'x' FROM bsm_ios_receipt_mas WHERE ticket_uid = :ticket_uid and created >= ( sysdate)";
-                            OracleCommand _cmd_ticket = new OracleCommand(_sql_pk_tick, conn);
-                            _cmd_ticket.BindByName = true;
-                            _cmd_ticket.Parameters.Add("TICKET_UID", ticket_uid);
-                            OracleDataReader _rd_ticket = _cmd_ticket.ExecuteReader();
-                            /* 必須只驗證成功,或是還未送的 */
-                            if (_rd_ticket.Read())
+                            JsonArray _ja = (JsonArray) _receipt["in_app"];
+                            foreach (JsonObject _j in _ja)
                             {
-                                result.result_code = "BSM-00404";
-                                result.result_message = "重複傳送";
-                                return result;
+                                _rec = new IOS_ReceiptInfo();
+                                _rec._id = _j["transaction_id"].ToString();
+                                _rec.transaction_id = _j["transaction_id"].ToString();
+                                _rec.original_transaction_id = _j["original_transaction_id"].ToString();
+                                _rec.product_id = _j["product_id"].ToString();
+                                _rec.purchase_date = _j["purchase_date"].ToString();
+                                _rec.expires_date = _j["expires_date"].ToString();
+                                _rec.expires_date_formatted = _j["expires_date"].ToString();
+                                _rec.is_trial_period = _j["is_trial_period"].ToString();
+                                _rec.original_purchase_date = _j["original_purchase_date"].ToString();
+                                _rec_l.Add(_rec);
                             }
-                            // get bsm pk_no
-                            string _sql_pk_no = "Select Seq_Bsm_Purchase_Pk_No.Nextval PK_NO From Dual";
-                            OracleCommand _cmd = new OracleCommand(_sql_pk_no, conn);
-                            OracleDataReader _rd = _cmd.ExecuteReader();
-                            if (_rd.Read()) _purchase_pk_no = Convert.ToInt32(_rd[0]);
-
-                            string _sql_insert_receipt = @"insert into bsm_ios_receipt_mas(mas_pk_no,receipt,password,ios_product_code,ticket_uid,created,CLIENT_ID,PACKAGE_ID)  values(:P_ORDER_NO,:P_RECEIPT,:P_PASSWORD,:P_IOS_PRODUCT_CODE,:TICKET_UID,sysdate,:CLIENT_ID,:PACKAGE_ID)";
-                            OracleCommand _cmd_rep = new OracleCommand(_sql_insert_receipt, conn);
-                            _cmd_rep.BindByName = true;
-                            _cmd_rep.Parameters.Add("P_ORDER_NO", _purchase_pk_no);
-                            _cmd_rep.Parameters.Add("P_RECEIPT", OracleDbType.Clob, ticket, ParameterDirection.Input);
-                            _cmd_rep.Parameters.Add("P_PASSWORD", "c7cdbd0220b54ab99af16548b0f27733");
-                            _cmd_rep.Parameters.Add("P_IOS_PRODUCT_CODE", purchase_info.details[0].ios_product_code);
-                            _cmd_rep.Parameters.Add("TICKET_UID", ticket_uid);
-                            _cmd_rep.Parameters.Add("CLIENT_ID", purchase_info.client_id);
-                            _cmd_rep.Parameters.Add("PACKAGE_ID", purchase_info.details[0].package_id);
-                            _cmd_rep.ExecuteNonQuery();
-
-                            try
-                            {
-
-                                ios_receipt_info _ios_receipt_info;
-                                _ios_receipt_info = new ios_receipt_info();
-                                _ios_receipt_info._id = _purchase_pk_no.ToString();
-                                _ios_receipt_info.client_id = Convert.ToString(_rd["CLIENT_ID"]);
-                                _ios_receipt_info.password = "c7cdbd0220b54ab99af16548b0f27733";
-                                _ios_receipt_info.package_id = purchase_info.details[0].package_id;
-                                _ios_receipt_info.receipt = ticket;
-                                _ios_receipt_info.ticket_uid = ticket_uid;
-
-                                mongo_save_ios_receipt(_ios_receipt_info);
-                            }
-                            catch
-                            { };
-
                         }
-                        finally
+                        else
                         {
-                            conn.Close();
+                            _rec = new IOS_ReceiptInfo();
+                            _rec._id = _receipt["transaction_id"].ToString();
+                            _rec.transaction_id = _receipt["transaction_id"].ToString();
+                            _rec.original_transaction_id = _receipt["original_transaction_id"].ToString();
+                            _rec.product_id = _receipt["product_id"].ToString();
+                            _rec.purchase_date = _receipt["purchase_date"].ToString();
+                            _rec.expires_date = _receipt["expires_date"].ToString();
+                            _rec.expires_date_formatted = _receipt["expires_date_formatted"].ToString();
+                            _rec.is_trial_period = _receipt["is_trial_period"].ToString();
+                            _rec.original_purchase_date = _receipt["original_purchase_date"].ToString();
+                            _rec_l.Add(_rec);
                         }
-                        
-                        string original_transaction_id = _receipt["original_transaction_id"].ToString();
-                        string unique_identifier = _receipt["unique_identifier"].ToString();
-                        string src_no = purchase_info.session_uid;
-
-                        JsonObject json_purchase_info = new JsonObject();
-                        json_purchase_info.Add("purchase_info", purchase_info);
-                        json_purchase_info.Add("verify_receipt", _receipt);
-                        json_purchase_info.Add("receipt", purchase_info.ios_receipt_info);
-
-                        conn.Open();
-                        try
-                        {
-
-                            string _sql_purchae = @"BEGIN CRT_PURCHASE(:P_PAYTYPE,:P_CLIENT_ID,:P_DEVICE_ID,:P_PACKAGE_ID,:P_SRC_NO,:P_PK_NO,:P_MAS_NO); END;";
-                            OracleCommand _cmd_p = new OracleCommand(_sql_purchae, conn);
-                            _cmd_p.BindByName = true;
-                            _cmd_p.Parameters.Add("P_PAYTYPE", "IOS");
-                            _cmd_p.Parameters.Add("P_CLIENT_ID", purchase_info.client_id);
-                            _cmd_p.Parameters.Add("P_DEVICE_ID", purchase_info.device_id);
-                            _cmd_p.Parameters.Add("P_PACKAGE_ID", purchase_info.details[0].package_id);
-                            _cmd_p.Parameters.Add("P_SRC_NO", original_transaction_id);
-                            _cmd_p.Parameters.Add("P_PK_NO", _purchase_pk_no);
-                            _cmd_p.Parameters.Add("P_MAS_NO", "");
-                            _cmd_p.ExecuteNonQuery();
-                        }
-                        finally
-                        {
-                            conn.Close();
-                        }
-
-
-
-                        result.result_code = "BSM-00000";
-                        result.result_message = "Success";
-
-
-                                            
-                        return result;
                     }
-                    else
+
+                    conn.Open();
+                    try
                     {
-                        /* result error */
+                        string _sql_pk_tick = "SELECT 'x' FROM bsm_ios_receipt_mas WHERE ticket_uid = :ticket_uid and created >= ( sysdate)";
+                        OracleCommand _cmd_ticket = new OracleCommand(_sql_pk_tick, conn);
+                        _cmd_ticket.BindByName = true;
+                        _cmd_ticket.Parameters.Add("TICKET_UID", ticket_uid);
+                        OracleDataReader _rd_ticket = _cmd_ticket.ExecuteReader();
+                        /* 必須只驗證成功,或是還未送的 */
+                        if (_rd_ticket.Read())
+                        {
+                            result.result_code = "BSM-00404";
+                            result.result_message = "重複傳送";
+                            return result;
+                        }
 
-                        Dictionary<string, string> ios_error_code = new Dictionary<string, string>();
-                        ios_error_code.Add("21000", "The App Store could not read the JSON object you provided.");
-                        ios_error_code.Add("21002", "The data in the receipt-data property was malformed or missing.");
-                        ios_error_code.Add("21003", "The receipt could not be authenticated.");
-                        ios_error_code.Add("21004", "The shared secret you provided does not match the shared secret on file for your account.");
-                        ios_error_code.Add("21005", "The receipt server is not currently available.");
-                        ios_error_code.Add("21006", "This receipt is valid but the subscription has expired. When this status code is returned to your server, the receipt data is also decoded and returned as part of the response.Only returned for iOS 6 style transaction receipts for auto-renewable subscriptions.");
-                        ios_error_code.Add("21007", "This receipt is from the test environment, but it was sent to the production environment for verification. Send it to the test environment instead.");
-                        ios_error_code.Add("21008", "This receipt is from the production environment, but it was sent to the test environment for verification. Send it to the production environment instead.");
 
-                        result.result_code = "BSM-00309";
-                        result.result_message = "IOS 認證失敗-" + ios_result["status"].ToString() + ios_error_code[ios_result["status"].ToString()];
+                        // get bsm pk_no
+                        foreach (IOS_ReceiptInfo _r in _rec_l)
+                        {
 
-                        return result;
+                            if (mongo_save_ios_receiptinfo(_r))
+                            {
+                                string _sql_pk_no = "Select Seq_Bsm_Purchase_Pk_No.Nextval PK_NO From Dual";
+                                OracleCommand _cmd = new OracleCommand(_sql_pk_no, conn);
+                                OracleDataReader _rd = _cmd.ExecuteReader();
+                                if (_rd.Read()) _purchase_pk_no = Convert.ToInt32(_rd[0]);
+
+                                string _sql_insert_receipt = @"insert into bsm_ios_receipt_mas(mas_pk_no,receipt,password,ios_product_code,ticket_uid,created,CLIENT_ID,PACKAGE_ID)  values(:P_ORDER_NO,:P_RECEIPT,:P_PASSWORD,:P_IOS_PRODUCT_CODE,:TICKET_UID,sysdate,:CLIENT_ID,:PACKAGE_ID)";
+                                OracleCommand _cmd_rep = new OracleCommand(_sql_insert_receipt, conn);
+                                _cmd_rep.BindByName = true;
+                                _cmd_rep.Parameters.Add("P_ORDER_NO", _purchase_pk_no);
+                                _cmd_rep.Parameters.Add("P_RECEIPT", OracleDbType.Clob, ticket, ParameterDirection.Input);
+                                _cmd_rep.Parameters.Add("P_PASSWORD", "c7cdbd0220b54ab99af16548b0f27733");
+                                _cmd_rep.Parameters.Add("P_IOS_PRODUCT_CODE", purchase_info.details[0].ios_product_code);
+                                _cmd_rep.Parameters.Add("TICKET_UID", ticket_uid);
+                                _cmd_rep.Parameters.Add("CLIENT_ID", purchase_info.client_id);
+                                _cmd_rep.Parameters.Add("PACKAGE_ID", purchase_info.details[0].package_id);
+                                _cmd_rep.ExecuteNonQuery();
+
+                                try
+                                {
+
+                                    ios_receipt_info _ios_receipt_info;
+                                    _ios_receipt_info = new ios_receipt_info();
+                                    _ios_receipt_info._id = _purchase_pk_no.ToString();
+                                    _ios_receipt_info.client_id = Convert.ToString(_rd["CLIENT_ID"]);
+                                    _ios_receipt_info.password = "c7cdbd0220b54ab99af16548b0f27733";
+                                    _ios_receipt_info.package_id = purchase_info.details[0].package_id;
+                                    _ios_receipt_info.receipt = ticket;
+                                    _ios_receipt_info.ticket_uid = ticket_uid;
+
+                                    mongo_save_ios_receipt(_ios_receipt_info);
+                                }
+                                catch
+                                { };
+
+
+                                string src_no = purchase_info.session_uid;
+
+                                JsonObject json_purchase_info = new JsonObject();
+                                json_purchase_info.Add("purchase_info", purchase_info);
+                                json_purchase_info.Add("verify_receipt", _receipt);
+                                json_purchase_info.Add("receipt", purchase_info.ios_receipt_info);
+
+
+                                string _sql_purchae = @"begin
+    crt_purchase_ios(p_paytype => :p_paytype,
+                   p_client_id => :p_client_id,
+                   p_device_id => :p_device_id,
+                   p_package_id => :p_package_id,
+                   p_ios_org_trans_id => :p_ios_org_trans_id,
+                   p_ios_trans_id => :p_ios_trans_id,
+                   p_pk_no => :p_pk_no,
+                   p_mas_no => :p_mas_no,
+                   p_purchase_date => :p_purchase_date,
+                   p_expires_date => :p_expires_date);
+end;";
+                                OracleCommand _cmd_p = new OracleCommand(_sql_purchae, conn);
+                                _cmd_p.BindByName = true;
+                                _cmd_p.Parameters.Add("P_PAYTYPE", "IOS");
+                                _cmd_p.Parameters.Add("P_CLIENT_ID", purchase_info.client_id);
+                                _cmd_p.Parameters.Add("P_DEVICE_ID", purchase_info.device_id);
+                                _cmd_p.Parameters.Add("P_PACKAGE_ID", _r.product_id);
+                                _cmd_p.Parameters.Add("P_IOS_ORG_TRANS_ID", _r.original_transaction_id);
+                                _cmd_p.Parameters.Add("P_IOS_TRANS_ID", _r.transaction_id);
+                                _cmd_p.Parameters.Add("P_PURCHASE_DATE", _r.purchase_date);
+                                _cmd_p.Parameters.Add("P_EXPIRES_DATE", _r.expires_date_formatted);
+                                _cmd_p.Parameters.Add("P_PK_NO", _purchase_pk_no);
+                                _cmd_p.Parameters.Add("P_MAS_NO", "");
+                                _cmd_p.ExecuteNonQuery();
+                            };
+                        };
                     }
+                    finally
+                    {
+                        conn.Close();
+                    }
+                     
+
+
+                    result.result_code = "BSM-00000";
+                    result.result_message = "Success";
+
+
+
+                    return result;
+                }
+                else
+                {
+                    /* result error */
+
+                    Dictionary<string, string> ios_error_code = new Dictionary<string, string>();
+                    ios_error_code.Add("21000", "The App Store could not read the JSON object you provided.");
+                    ios_error_code.Add("21002", "The data in the receipt-data property was malformed or missing.");
+                    ios_error_code.Add("21003", "The receipt could not be authenticated.");
+                    ios_error_code.Add("21004", "The shared secret you provided does not match the shared secret on file for your account.");
+                    ios_error_code.Add("21005", "The receipt server is not currently available.");
+                    ios_error_code.Add("21006", "This receipt is valid but the subscription has expired. When this status code is returned to your server, the receipt data is also decoded and returned as part of the response.Only returned for iOS 6 style transaction receipts for auto-renewable subscriptions.");
+                    ios_error_code.Add("21007", "This receipt is from the test environment, but it was sent to the production environment for verification. Send it to the test environment instead.");
+                    ios_error_code.Add("21008", "This receipt is from the production environment, but it was sent to the test environment for verification. Send it to the production environment instead.");
+
+                    result.result_code = "BSM-00309";
+                    result.result_message = "IOS 認證失敗-" + ios_result["status"].ToString() + ios_error_code[ios_result["status"].ToString()];
+
+                    return result;
+                }
 
             }
 
@@ -612,7 +701,7 @@ namespace BSM
 
             OracleCommand cmd = new OracleCommand(sql1, conn);
 
-            bsm_purchase.SRC_NO = purchase_info.session_uid.Length > 32 ? purchase_info.session_uid.Substring(0,32) : purchase_info.session_uid;
+            bsm_purchase.SRC_NO = purchase_info.session_uid.Length > 32 ? purchase_info.session_uid.Substring(0, 32) : purchase_info.session_uid;
             bsm_purchase.SERIAL_ID = purchase_info.client_id;
             bsm_purchase.CVC2 = purchase_info.cvc2;
             bsm_purchase.CARD_EXPIRY = purchase_info.card_expiry;
@@ -705,11 +794,11 @@ namespace BSM
                     result.result_code = bsm_result.result_code;
                     result.result_message = bsm_result.result_message;
                     result.purchase_id = bsm_purchase.MAS_NO;
-                    
+
                 }
                 else
                 {
-                    
+
                     result.result_code = bsm_result.result_code;
                     result.result_message = bsm_result.result_message;
                     result.purchase_id = bsm_purchase.MAS_NO;
@@ -717,7 +806,7 @@ namespace BSM
 
                 if (!(result.purchase_id == null))
                 {
-                    
+
                     result.purchase = BSM_Info_base.get_purchase_info_by_id(purchase_info.client_id, result.purchase_id);
                 }
             }
@@ -1136,6 +1225,24 @@ namespace BSM
             return _json_result;
         }
 
+        private JsonObject _ios_verifyReceipt_dev(string src_pk_no, string p_receipt, string p_password)
+        {
+            JsonObject _json_result = new JsonObject();
+            try
+            {
+                string _result = "";
+                StreamReader a = new StreamReader(@"C:\sample_json3.txt");
+                _result = a.ReadToEnd();
+                a.Dispose();
+
+                _json_result = (JsonObject)JsonConvert.Import(typeof(JsonObject), _result);
+            }
+            finally
+            { }
+            logger.Info(_json_result);
+            return _json_result;
+        }
+
         private JsonObject _ios_verifyReceipt(string src_pk_no, string p_receipt, string p_password)
         {
             JsonObject _json_result = new JsonObject();
@@ -1152,7 +1259,8 @@ namespace BSM
                 _json_result = (JsonObject)JsonConvert.Import(typeof(JsonObject), _result);
             }
             finally
-            {  }
+            { }
+            logger.Info(_json_result);
             return _json_result;
         }
 
@@ -1167,9 +1275,9 @@ namespace BSM
                 _jsonObject.Add("receipt-data", p_receipt);
                 _jsonObject.Add("password", p_password);
                 string _post_data = JsonConvert.ExportToString(_jsonObject);
-               // string url = IOS_URL;
+                // string url = IOS_URL;
                 //   string url = @"https://buy.itunes.apple.com/verifyReceipt";
-                 string url = @"https://sandbox.itunes.apple.com/verifyReceipt";
+                string url = @"https://sandbox.itunes.apple.com/verifyReceipt";
                 ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
                 _result = WebRequest(url, _post_data);
                 _json_result = (JsonObject)JsonConvert.Import(typeof(JsonObject), _result);
@@ -1187,7 +1295,44 @@ namespace BSM
             MongoCollection<ios_receipt_info> _c_ios_receipts = _MongoDB_ClientInfo.GetCollection<ios_receipt_info>("ios_receipts");
 
             _c_ios_receipts.Save(_ios_receipt_info);
-            
+
+        }
+
+        public void ios_new_receiptinfo(IOS_ReceiptInfo p_receiptinfo)
+        {
+            mongo_save_ios_receiptinfo(p_receiptinfo);
+            conn.Open();
+            try
+            {
+            }
+            finally
+            {
+                conn.Close();
+            }
+
+
+        }
+
+        public Boolean mongo_save_ios_receiptinfo(IOS_ReceiptInfo p_receiptinfo)
+        {
+            IOS_ReceiptInfo _receiptinfo;
+            MongoClient _MongoClient = new MongoClient(MongoDBConnectString);
+            MongoServer _MongoServer = _MongoClient.GetServer();
+            MongoDatabase _MongoDB_ClientInfo = _MongoServer.GetDatabase(MongoDB);
+            MongoCollection<IOS_ReceiptInfo> _c_ios_receiptinfos = _MongoDB_ClientInfo.GetCollection<IOS_ReceiptInfo>("ios_receiptinfos");
+            try
+            {
+                _receiptinfo = (IOS_ReceiptInfo)_c_ios_receiptinfos.FindOne(Query.EQ("_id", p_receiptinfo._id));
+                if (_receiptinfo == null) { _c_ios_receiptinfos.Save(p_receiptinfo); return true; }
+                else
+                {
+                    return true;
+                }
+            }
+            catch
+            { return false; }
+
+            _c_ios_receiptinfos.Save(p_receiptinfo);
         }
 
         public ios_receipt_info mongo_load_ios_receipt(int order_pk_no)
@@ -1265,10 +1410,10 @@ namespace BSM
             string ret = string.Empty;
             int retry = 3;
 
-          //  StreamWriter requestWriter;
+            //  StreamWriter requestWriter;
             ASCIIEncoding ascii = new ASCIIEncoding();
 
-            byte[] postBytes=Encoding.UTF8.GetBytes(postData);
+            byte[] postBytes = Encoding.UTF8.GetBytes(postData);
 
             while (retry > 0)
             {

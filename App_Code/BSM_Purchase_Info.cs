@@ -1113,7 +1113,7 @@ and t3.package_id=t2.package_id";
             if (src_no != null) _result = (from _p in _result where _p.src_no == src_no select _p).ToList();
 
 
-            _result = (from _p in _result where _p.device_id == "" || _p.device_id == device_id select _p).ToList();
+            _result = (from _p in _result orderby  _p.purchase_id descending,_p.amount_description descending  where _p.device_id == "" || _p.device_id == device_id select _p).ToList();
             foreach (var a in _result)
             {
                 if (a.pay_type != "信用卡" && a.pay_type != "REMIT" && a.pay_type != "ATM")
@@ -2882,61 +2882,11 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
 
         public string check_access(string token, string client_id, string asset_id, string device_id)
         {
-         /*   connectDB();
-
-            string sql1 = "begin :P_RESULT := check_cdi_access(:P_CLIENT_ID,:P_ASSET_ID); end; ";
-            string result = "N";
-            try
-            {
-                OracleCommand cmd = new OracleCommand(sql1, conn);
-                cmd.BindByName = true;
-                OracleString v_o_result;
-                cmd.Parameters.Add("P_CLIENT_ID", OracleDbType.Varchar2, 32, client_id, ParameterDirection.Input);
-                cmd.Parameters.Add("P_ASSET_ID", OracleDbType.Varchar2, 32, asset_id, ParameterDirection.Input);
-                cmd.Parameters.Add("P_RESULT", OracleDbType.Varchar2, 32, ParameterDirection.InputOutput);
-                cmd.ExecuteNonQuery();
-
-                v_o_result = (OracleString)cmd.Parameters["P_RESULT"].Value;
-                result = v_o_result.ToString();
-            }
-            finally
-            {
-                conn.Close();
-            }
-            */
             return "Y";
-
         }
 
         public string get_stock_broker(string client_id)
         {
-         /*   conn.Open();
-
-            client_id = client_id.ToUpper();
-
-            string _sql = "Select stock_broker FROM bsm_client_mas a where a.MAC_ADDRESS=:CLIENT_ID";
-            string _result = "";
-            OracleCommand _cmd = new OracleCommand(_sql, conn);
-            _cmd.Parameters.Add("CLIENT_ID", client_id);
-            OracleDataReader _Data_Reader;
-
-            try
-            {
-                _Data_Reader = _cmd.ExecuteReader();
-                if (_Data_Reader.Read())
-                {
-                    if (!_Data_Reader.IsDBNull(0))
-                    {
-                        _result = _Data_Reader.GetString(0);
-                    }
-                }
-            }
-            finally
-            {
-                _cmd.Dispose();
-                conn.Close();
-
-            } */
             return null;
         }
 
@@ -3066,18 +3016,6 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
 
         private string check_apt_user(string imsi)
         {
-    /*        OracleCommand _cmd = new OracleCommand("select bsm_apt_service.check_min( :p_min) RESULT from dual", conn);
-            _cmd.Parameters.Add("P_MIN", imsi);
-            OracleDataReader _rd = _cmd.ExecuteReader();
-            if (_rd.Read())
-            {
-                return (string)_rd["RESULT"];
-            }
-            else
-            {
-                return "N";
-            }
-            */
             return "";
         }
 
