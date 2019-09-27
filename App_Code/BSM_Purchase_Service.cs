@@ -6,6 +6,7 @@ using System.Threading;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Net;
 using Jayrock.Json;
@@ -578,6 +579,9 @@ namespace BSM
                             return result;
                         }
 
+                        // Order by Purchase Date
+
+                        _rec_l = (from v in _rec_l orderby v.purchase_date select v).ToList();
 
                         // get bsm pk_no
                         foreach (IOS_ReceiptInfo _r in _rec_l)
@@ -651,8 +655,20 @@ end;";
                                 _cmd_p.Parameters.Add("P_PURCHASE_DATE", _r.purchase_date);
                                 _cmd_p.Parameters.Add("P_EXPIRES_DATE", _r.expires_date_formatted);
                                 _cmd_p.Parameters.Add("P_PK_NO", _purchase_pk_no);
-                                _cmd_p.Parameters.Add("P_MAS_NO", "");
+
+                                OracleParameter _mas_no = new OracleParameter();
+                                String _s_mas_no = "";
+                                _mas_no.ParameterName = "P_MAS_NO";
+                                _mas_no.OracleDbType = OracleDbType.Varchar2;
+                                _mas_no.Direction = ParameterDirection.InputOutput;
+                                _mas_no.Size = 64;
+                                _mas_no.Value = _s_mas_no;
+                                _cmd_p.Parameters.Add(_mas_no);
                                 _cmd_p.ExecuteNonQuery();
+                                if (_mas_no.Value != null && Convert.ToString(_mas_no.Value)!="null")
+                                {
+                                    result.purchase_id = Convert.ToString(_mas_no.Value);
+                                }
                             };
                         };
                     }
@@ -661,10 +677,14 @@ end;";
                         conn.Close();
                     }
                      
-
-
                     result.result_code = "BSM-00000";
                     result.result_message = "Success";
+
+
+                    if (!(result.purchase_id == null))
+                    {
+                        result.purchase = BSM_Info_base.get_purchase_info_by_id(purchase_info.client_id, result.purchase_id);
+                    }
 
 
 

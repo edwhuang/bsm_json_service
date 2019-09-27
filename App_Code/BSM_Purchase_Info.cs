@@ -570,6 +570,15 @@ namespace BSM_Info
 
     }
 
+    public class bsm_package_special
+    {
+        public string _id;
+        public string package_id;
+        public DateTime start_date;
+        public DateTime end_date;
+        public JsonObject Option;
+    }
+
     /// <summary>
     /// content 與 package detail 資料
     /// </summary>
@@ -1513,14 +1522,23 @@ and t3.package_id=t2.package_id";
                         _cmd2.BindByName = true;
                         _cmd2.Parameters.Add("mac_address", client_id);
                         _cmd2.Parameters.Add("package_id", v_purchase_info.package_id);
+                        
                         OracleDataReader v_Data_Reader2 = _cmd2.ExecuteReader();
-                        v_purchase_info.use_status = "N";
-                        while (v_Data_Reader2.Read()) v_purchase_info.use_status = Convert.ToString(v_Data_Reader2["PACKAGE_STATUS"]);
-                        v_purchase_info.purchase_datetime = v_Data_Reader.GetString(11);
+                        try
+                        {
+
+                            v_purchase_info.use_status = "N";
+                            while (v_Data_Reader2.Read()) v_purchase_info.use_status = Convert.ToString(v_Data_Reader2["PACKAGE_STATUS"]);
+                            v_purchase_info.purchase_datetime = v_Data_Reader.GetString(11);
 
 
-                        v_result.Add(v_purchase_info);
-                        _i++;
+                            v_result.Add(v_purchase_info);
+                            _i++;
+                        }
+                        finally
+                        {
+                            v_Data_Reader2.Dispose();
+                        }
 
                     }
                 }
@@ -2223,7 +2241,64 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             return v_result;
         }
 
+        public JsonArray get_package_info_a(string client_id, string system_type, int? min_credits, string device_id, string group_id, string imsi, string sw_version, string from_credits, string cal_type)
+        {
+            List<package_info> all_packages = get_package_info(client_id,system_type,min_credits, device_id,group_id,imsi, sw_version,from_credits, cal_type);
+            JsonObject package = new JsonObject();
+            JsonArray _result_a = new JsonArray();
+            List<bsm_package_special> _all_special = get_package_special();
+           
+                foreach (var item in all_packages)
+                {
+                    package = (JsonObject)JsonConvert.Import(JsonConvert.ExportToString(item));
 
+                    List<bsm_package_special> specials = (from c in _all_special where c.package_id == item.package_id && (DateTime.Compare(c.start_date, DateTime.Now) <= 0 && DateTime.Compare(DateTime.Now, c.end_date) <= 0) select c).ToList();
+                    foreach (var special in specials)
+                    {
+                        JsonObject _option = special.Option;
+                        foreach (string name in _option.Names)
+                        {
+                            if (package.Contains(name))
+                            {
+                                package[name] = _option[name];
+                            }
+                            else
+                            {
+                                package.Add(name, _option[name]);
+                            }
+                        }
+                    }
+                    _result_a.Add(package);
+                }
+            return _result_a;
+        }
+
+
+        public List<bsm_package_special> get_package_special()
+        {
+            var _collection = _MongoDB_package.GetCollection<bsm_package_special>("bsm_package_special");
+            List<bsm_package_special> _result = _collection.AsQueryable().ToList();
+            return _result;
+        }
+        public void post_package_special()
+        {
+            var _collection = _MongoDB_package.GetCollection<bsm_package_special>("bsm_package_special");
+            bsm_package_special _data = new bsm_package_special();
+            connectDB();
+
+            string sql = @"select pk_no id,x.src_id,(start_date+8/24) start_date,(end_date+8/24) end_date,x.pc_option from bsm_package_special_setting x where type = 'PACKAGE' and status_flg in ('P','Z')";
+            OracleCommand cmd = new OracleCommand(sql, conn);
+            OracleDataReader rd = cmd.ExecuteReader();
+            while (rd.Read())
+            {
+                _data._id = Convert.ToString(rd["ID"]);
+                _data.package_id = Convert.ToString(rd["SRC_ID"]);
+                _data.start_date = Convert.ToDateTime(rd["START_DATE"]);
+                _data.end_date = Convert.ToDateTime(rd["END_DATE"]);
+                _data.Option = (JsonObject)JsonConvert.Import(Convert.ToString(rd["PC_OPTION"]));
+                _collection.Save(_data);
+            };
+        }
         public class bsm_message
         {
             public string _id;
@@ -3050,6 +3125,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             get_message("DSP_TEXT",null);
             get_message("SERVICE_ALREADY_TEXT",null);
             get_message("USE_CREDITS_TEXT",null);
+            post_package_special();
 
           //  get_all_package();
 
@@ -3251,16 +3327,16 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         /// </summary>
         [JsonRpcMethod("get_package_info")]
         [JsonRpcHelp("取得Package 資訊,(cal_type = 'T' 為單片,'P' 方案")]
-        public List<package_info> get_package_info(string token,string group_id, string client_id, string device_id,string imsi,string sw_version,string cal_type)
+        public JsonArray get_package_info(string token,string group_id, string client_id, string device_id,string imsi,string sw_version,string cal_type)
         {
-             List<package_info> v_result;
+            JsonArray v_result;
             if (group_id == null)
             {
-                v_result  = _base.get_package_info(client_id, "BUY", device_id, imsi, sw_version,cal_type);
+                v_result = _base.get_package_info_a(client_id, "BUY", 0, device_id, null, imsi, sw_version, "N", cal_type);
             }
             else
             {
-                v_result = _base.get_package_info(client_id, "BUY", 0, device_id, group_id, imsi, sw_version, "N",cal_type);
+                v_result = _base.get_package_info_a(client_id, "BUY", 0, device_id, group_id, imsi, sw_version, "N",cal_type);
             }
             logger.Info("Sccess");
 
