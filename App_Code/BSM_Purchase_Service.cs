@@ -537,6 +537,7 @@ namespace BSM
                                 _rec = new IOS_ReceiptInfo();
                                 _rec._id = _j["transaction_id"].ToString();
                                 _rec.transaction_id = _j["transaction_id"].ToString();
+                                _rec.is_in_intro_offer_period = _j["is_in_intro_offer_period"].ToString();
                                 _rec.original_transaction_id = _j["original_transaction_id"].ToString();
                                 _rec.product_id = _j["product_id"].ToString();
                                 _rec.purchase_date = _j["purchase_date"].ToString();
@@ -558,6 +559,7 @@ namespace BSM
                             _rec.expires_date = _receipt["expires_date"].ToString();
                             _rec.expires_date_formatted = _receipt["expires_date_formatted"].ToString();
                             _rec.is_trial_period = _receipt["is_trial_period"].ToString();
+                            _rec.is_in_intro_offer_period = _receipt["is_in_intro_offer_period"].ToString(); 
                             _rec.original_purchase_date = _receipt["original_purchase_date"].ToString();
                             _rec_l.Add(_rec);
                         }
@@ -642,7 +644,8 @@ namespace BSM
                    p_pk_no => :p_pk_no,
                    p_mas_no => :p_mas_no,
                    p_purchase_date => :p_purchase_date,
-                   p_expires_date => :p_expires_date);
+                   p_expires_date => :p_expires_date,
+                   is_intro_offer => :p_is_intro_offer);
 end;";
                                 OracleCommand _cmd_p = new OracleCommand(_sql_purchae, conn);
                                 _cmd_p.BindByName = true;
@@ -655,6 +658,7 @@ end;";
                                 _cmd_p.Parameters.Add("P_PURCHASE_DATE", _r.purchase_date);
                                 _cmd_p.Parameters.Add("P_EXPIRES_DATE", _r.expires_date_formatted);
                                 _cmd_p.Parameters.Add("P_PK_NO", _purchase_pk_no);
+                                _cmd_p.Parameters.Add("P_IS_INTRO_OFFER", _r.is_in_intro_offer_period);
 
                                 OracleParameter _mas_no = new OracleParameter();
                                 String _s_mas_no = "";

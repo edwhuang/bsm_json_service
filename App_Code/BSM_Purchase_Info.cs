@@ -1023,7 +1023,7 @@ Select case when cal_type = 'T' then
         t.device_id
          from bsm_client_details t,bsm_package_mas t2,bsm_purchase_mas t4
  where t.status_flg = 'P'
-   and t.package_id in (Select t2.package_id from bsm_package_mas t2 where system_type <> 'CLIENT_ACTIVED')
+   and t.package_id in (Select t2.package_id from bsm_package_mas t2 where system_type not in ('CLIENT_ACTIVED','SYSTEM','FREE'))
    and t.package_id not in ('CHG003','CH4G06')  
    and t2.package_id= t.package_id
    and t2.acl_period is null
@@ -1129,6 +1129,7 @@ and t3.package_id=t2.package_id";
                 {
                     a.price_description = "";
                     a.amount_description = "";
+                   
                   
                 }
             }
