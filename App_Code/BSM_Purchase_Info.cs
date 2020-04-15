@@ -574,6 +574,7 @@ namespace BSM_Info
     {
         public string _id;
         public string package_id;
+        public string proj_no;
         public DateTime start_date;
         public DateTime end_date;
         public JsonObject Option;
@@ -1122,7 +1123,7 @@ and t3.package_id=t2.package_id";
             if (src_no != null) _result = (from _p in _result where _p.src_no == src_no select _p).ToList();
 
 
-            _result = (from _p in _result orderby  _p.purchase_id descending,_p.amount_description descending  where _p.device_id == "" || _p.device_id == device_id select _p).ToList();
+            _result = (from _p in _result orderby  _p.purchase_date descending,_p.purchase_id descending  where _p.device_id == "" || _p.device_id == device_id select _p).ToList();
             foreach (var a in _result)
             {
                 if (a.pay_type != "信用卡" && a.pay_type != "REMIT" && a.pay_type != "ATM")
@@ -2253,7 +2254,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
                 {
                     package = (JsonObject)JsonConvert.Import(JsonConvert.ExportToString(item));
 
-                    List<bsm_package_special> specials = (from c in _all_special where c.package_id == item.package_id && (DateTime.Compare(c.start_date, DateTime.Now) <= 0 && DateTime.Compare(DateTime.Now, c.end_date) <= 0) select c).ToList();
+                    List<bsm_package_special> specials = (from c in _all_special where c.package_id == item.package_id && (DateTime.Compare(c.start_date, DateTime.Now) <= 0 && DateTime.Compare(DateTime.Now, c.end_date) <= 0) && (c.proj_no == "" || c.proj_no == sw_version.Substring(0,7)) select c).ToList();
                     foreach (var special in specials)
                     {
                         JsonObject _option = special.Option;
@@ -2287,13 +2288,14 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             bsm_package_special _data = new bsm_package_special();
             connectDB();
 
-            string sql = @"select pk_no id,x.src_id,(start_date+8/24) start_date,(end_date+8/24) end_date,x.pc_option from bsm_package_special_setting x where type = 'PACKAGE' and status_flg in ('P','Z')";
+            string sql = @"select pk_no id,x.src_id,proj_no,(start_date+8/24) start_date,(end_date+8/24) end_date,x.pc_option from bsm_package_special_setting x where type = 'PACKAGE' and status_flg in ('P','Z')";
             OracleCommand cmd = new OracleCommand(sql, conn);
             OracleDataReader rd = cmd.ExecuteReader();
             while (rd.Read())
             {
                 _data._id = Convert.ToString(rd["ID"]);
                 _data.package_id = Convert.ToString(rd["SRC_ID"]);
+                _data.proj_no = Convert.ToString(rd["PROJ_NO"]);
                 _data.start_date = Convert.ToDateTime(rd["START_DATE"]);
                 _data.end_date = Convert.ToDateTime(rd["END_DATE"]);
                 _data.Option = (JsonObject)JsonConvert.Import(Convert.ToString(rd["PC_OPTION"]));

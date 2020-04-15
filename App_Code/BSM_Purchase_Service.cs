@@ -526,6 +526,7 @@ namespace BSM
 
                 if (ios_result["status"].ToString() == "0")
                 {
+                   
                     if (ios_result["receipt"] != null)
                     {
                         _receipt = (JsonObject) ios_result["receipt"];
@@ -550,6 +551,48 @@ namespace BSM
                         }
                         else
                         {
+                            if (ios_result["latest_receipt_info"] != null)
+                            {
+                                JsonArray _ja;
+                                try
+                                {
+                                    _receipt = (JsonObject)ios_result["latest_receipt_info"];
+                                }
+                                catch (Exception e)
+                                {
+                                    _receipt = null;
+                                }
+
+                                try
+                                {
+                                    _ja = (JsonArray)_receipt["latest_receipt_info"];
+                                    if (_ja != null)
+                                    {
+                                        foreach (JsonObject _j in _ja)
+                                        {
+                                            _rec = new IOS_ReceiptInfo();
+                                            _rec._id = _j["transaction_id"].ToString();
+                                            _rec.transaction_id = _j["transaction_id"].ToString();
+                                            _rec.is_in_intro_offer_period = _j["is_in_intro_offer_period"].ToString();
+                                            _rec.original_transaction_id = _j["original_transaction_id"].ToString();
+                                            _rec.product_id = _j["product_id"].ToString();
+                                            _rec.purchase_date = _j["purchase_date"].ToString();
+                                            _rec.expires_date = _j["expires_date"].ToString();
+                                            _rec.expires_date_formatted = _j["expires_date"].ToString();
+                                            _rec.is_trial_period = _j["is_trial_period"].ToString();
+                                            _rec.original_purchase_date = _j["original_purchase_date"].ToString();
+                                            _rec_l.Add(_rec);
+                                        }
+                                    }
+
+                                }
+                                catch (Exception e)
+                                {
+                                }
+
+
+                                
+                            }
                             _rec = new IOS_ReceiptInfo();
                             _rec._id = _receipt["transaction_id"].ToString();
                             _rec.transaction_id = _receipt["transaction_id"].ToString();
@@ -645,7 +688,9 @@ namespace BSM
                    p_mas_no => :p_mas_no,
                    p_purchase_date => :p_purchase_date,
                    p_expires_date => :p_expires_date,
-                   is_intro_offer => :p_is_intro_offer);
+                   is_intro_offer => :p_is_intro_offer,
+                    sw_version => :sw_version,
+                    from_client => 'Y');
 end;";
                                 OracleCommand _cmd_p = new OracleCommand(_sql_purchae, conn);
                                 _cmd_p.BindByName = true;
@@ -659,6 +704,10 @@ end;";
                                 _cmd_p.Parameters.Add("P_EXPIRES_DATE", _r.expires_date_formatted);
                                 _cmd_p.Parameters.Add("P_PK_NO", _purchase_pk_no);
                                 _cmd_p.Parameters.Add("P_IS_INTRO_OFFER", _r.is_in_intro_offer_period);
+                                string option = JsonConvert.ExportToString(_option);
+                            //    _cmd_p.Parameters.Add("OPTION", option);
+                                _cmd_p.Parameters.Add("SW_VERSION", sw_version);
+                                
 
                                 OracleParameter _mas_no = new OracleParameter();
                                 String _s_mas_no = "";
