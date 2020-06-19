@@ -526,6 +526,31 @@ namespace BSM
 
                 if (ios_result["status"].ToString() == "0")
                 {
+                    if (ios_result["latest_receipt_info"] != null)
+                    {
+                        try
+                        {
+                            JsonArray _ja = (JsonArray)ios_result["latest_receipt_info"];
+                            foreach (JsonObject _j in _ja)
+                            {
+                                _rec = new IOS_ReceiptInfo();
+                                _rec._id = _j["transaction_id"].ToString();
+                                _rec.transaction_id = _j["transaction_id"].ToString();
+                                _rec.is_in_intro_offer_period = _j["is_in_intro_offer_period"].ToString();
+                                _rec.original_transaction_id = _j["original_transaction_id"].ToString();
+                                _rec.product_id = _j["product_id"].ToString();
+                                _rec.purchase_date = _j["purchase_date"].ToString();
+                                _rec.expires_date = _j["expires_date"].ToString();
+                                _rec.expires_date_formatted = _j["expires_date"].ToString();
+                                _rec.is_trial_period = _j["is_trial_period"].ToString();
+                                _rec.original_purchase_date = _j["original_purchase_date"].ToString();
+                                _rec_l.Add(_rec);
+                            }
+                        }catch(Exception e)
+                        {
+                        }
+
+                    }
                    
                     if (ios_result["receipt"] != null)
                     {
@@ -637,19 +662,33 @@ namespace BSM
                                 string _sql_pk_no = "Select Seq_Bsm_Purchase_Pk_No.Nextval PK_NO From Dual";
                                 OracleCommand _cmd = new OracleCommand(_sql_pk_no, conn);
                                 OracleDataReader _rd = _cmd.ExecuteReader();
-                                if (_rd.Read()) _purchase_pk_no = Convert.ToInt32(_rd[0]);
+                                try
+                                {
+                                    if (_rd.Read()) _purchase_pk_no = Convert.ToInt32(_rd[0]);
+                                }
+                                finally
+                                {
+                                    _rd.Dispose();
+                                }
 
                                 string _sql_insert_receipt = @"insert into bsm_ios_receipt_mas(mas_pk_no,receipt,password,ios_product_code,ticket_uid,created,CLIENT_ID,PACKAGE_ID)  values(:P_ORDER_NO,:P_RECEIPT,:P_PASSWORD,:P_IOS_PRODUCT_CODE,:TICKET_UID,sysdate,:CLIENT_ID,:PACKAGE_ID)";
                                 OracleCommand _cmd_rep = new OracleCommand(_sql_insert_receipt, conn);
-                                _cmd_rep.BindByName = true;
-                                _cmd_rep.Parameters.Add("P_ORDER_NO", _purchase_pk_no);
-                                _cmd_rep.Parameters.Add("P_RECEIPT", OracleDbType.Clob, ticket, ParameterDirection.Input);
-                                _cmd_rep.Parameters.Add("P_PASSWORD", "c7cdbd0220b54ab99af16548b0f27733");
-                                _cmd_rep.Parameters.Add("P_IOS_PRODUCT_CODE", purchase_info.details[0].ios_product_code);
-                                _cmd_rep.Parameters.Add("TICKET_UID", ticket_uid);
-                                _cmd_rep.Parameters.Add("CLIENT_ID", purchase_info.client_id);
-                                _cmd_rep.Parameters.Add("PACKAGE_ID", purchase_info.details[0].package_id);
-                                _cmd_rep.ExecuteNonQuery();
+                                try
+                                {
+                                    _cmd_rep.BindByName = true;
+                                    _cmd_rep.Parameters.Add("P_ORDER_NO", _purchase_pk_no);
+                                    _cmd_rep.Parameters.Add("P_RECEIPT", OracleDbType.Clob, ticket, ParameterDirection.Input);
+                                    _cmd_rep.Parameters.Add("P_PASSWORD", "c7cdbd0220b54ab99af16548b0f27733");
+                                    _cmd_rep.Parameters.Add("P_IOS_PRODUCT_CODE", purchase_info.details[0].ios_product_code);
+                                    _cmd_rep.Parameters.Add("TICKET_UID", ticket_uid);
+                                    _cmd_rep.Parameters.Add("CLIENT_ID", purchase_info.client_id);
+                                    _cmd_rep.Parameters.Add("PACKAGE_ID", purchase_info.details[0].package_id);
+                                    _cmd_rep.ExecuteNonQuery();
+                                }
+                                finally
+                                {
+                                    _cmd_rep.Dispose();
+                                }
 
                                 try
                                 {
@@ -693,35 +732,46 @@ namespace BSM
                     from_client => 'Y');
 end;";
                                 OracleCommand _cmd_p = new OracleCommand(_sql_purchae, conn);
-                                _cmd_p.BindByName = true;
-                                _cmd_p.Parameters.Add("P_PAYTYPE", "IOS");
-                                _cmd_p.Parameters.Add("P_CLIENT_ID", purchase_info.client_id);
-                                _cmd_p.Parameters.Add("P_DEVICE_ID", purchase_info.device_id);
-                                _cmd_p.Parameters.Add("P_PACKAGE_ID", _r.product_id);
-                                _cmd_p.Parameters.Add("P_IOS_ORG_TRANS_ID", _r.original_transaction_id);
-                                _cmd_p.Parameters.Add("P_IOS_TRANS_ID", _r.transaction_id);
-                                _cmd_p.Parameters.Add("P_PURCHASE_DATE", _r.purchase_date);
-                                _cmd_p.Parameters.Add("P_EXPIRES_DATE", _r.expires_date_formatted);
-                                _cmd_p.Parameters.Add("P_PK_NO", _purchase_pk_no);
-                                _cmd_p.Parameters.Add("P_IS_INTRO_OFFER", _r.is_in_intro_offer_period);
-                                string option = JsonConvert.ExportToString(_option);
-                            //    _cmd_p.Parameters.Add("OPTION", option);
-                                _cmd_p.Parameters.Add("SW_VERSION", sw_version);
-                                
-
-                                OracleParameter _mas_no = new OracleParameter();
-                                String _s_mas_no = "";
-                                _mas_no.ParameterName = "P_MAS_NO";
-                                _mas_no.OracleDbType = OracleDbType.Varchar2;
-                                _mas_no.Direction = ParameterDirection.InputOutput;
-                                _mas_no.Size = 64;
-                                _mas_no.Value = _s_mas_no;
-                                _cmd_p.Parameters.Add(_mas_no);
-                                _cmd_p.ExecuteNonQuery();
-                                if (_mas_no.Value != null && Convert.ToString(_mas_no.Value)!="null")
+                                try
                                 {
-                                    result.purchase_id = Convert.ToString(_mas_no.Value);
+                                    _cmd_p.BindByName = true;
+                                    _cmd_p.Parameters.Add("P_PAYTYPE", "IOS");
+                                    _cmd_p.Parameters.Add("P_CLIENT_ID", purchase_info.client_id);
+                                    _cmd_p.Parameters.Add("P_DEVICE_ID", purchase_info.device_id);
+                                    _cmd_p.Parameters.Add("P_PACKAGE_ID", _r.product_id);
+                                    _cmd_p.Parameters.Add("P_IOS_ORG_TRANS_ID", _r.original_transaction_id);
+                                    _cmd_p.Parameters.Add("P_IOS_TRANS_ID", _r.transaction_id);
+                                    _cmd_p.Parameters.Add("P_PURCHASE_DATE", _r.purchase_date);
+                                    _cmd_p.Parameters.Add("P_EXPIRES_DATE", _r.expires_date_formatted);
+                                    _cmd_p.Parameters.Add("P_PK_NO", _purchase_pk_no);
+                                    _cmd_p.Parameters.Add("P_IS_INTRO_OFFER", _r.is_in_intro_offer_period);
+                                    string option = JsonConvert.ExportToString(_option);
+                                    //    _cmd_p.Parameters.Add("OPTION", option);
+                                    _cmd_p.Parameters.Add("SW_VERSION", sw_version);
+
+
+
+                                    OracleParameter _mas_no = new OracleParameter();
+                                    String _s_mas_no = "";
+                                    _mas_no.ParameterName = "P_MAS_NO";
+                                    _mas_no.OracleDbType = OracleDbType.Varchar2;
+                                    _mas_no.Direction = ParameterDirection.InputOutput;
+                                    _mas_no.Size = 64;
+                                    _mas_no.Value = _s_mas_no;
+                                    _cmd_p.Parameters.Add(_mas_no);
+                                    _cmd_p.ExecuteNonQuery();
+
+                                    if (_mas_no.Value != null && Convert.ToString(_mas_no.Value) != "null")
+                                    {
+                                        result.purchase_id = Convert.ToString(_mas_no.Value);
+                                    }
                                 }
+                                finally
+                                {
+                                    _cmd_p.Dispose();
+                                }
+
+
                             };
                         };
                     }
