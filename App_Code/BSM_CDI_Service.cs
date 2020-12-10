@@ -112,9 +112,10 @@ namespace BSM
             public string client_id;
             public string device_id;
             public string phone_no;
+            public string sw_version;
             public string activate_code;
             public string result_code;
-            public string method;
+            public string method; 
             public Boolean send_passcode;
             public string notice;
             public string model_info;
@@ -128,7 +129,7 @@ namespace BSM
         /// <returns></returns>
         [JsonRpcMethod("register")]
         [JsonRpcHelp("Client 登錄")]
-        public BSM_Result register(string client_id, string mobile_number, string device_id, string passcode,Boolean? send_passcode )
+        public BSM_Result register(string client_id, string mobile_number, string device_id, string passcode,string sw_version,Boolean? send_passcode )
         {
 
             BSM_ClientInfo client_info = new BSM_ClientInfo();
@@ -181,6 +182,7 @@ namespace BSM
             _ms.device_id = device_id;
             _ms.phone_no = mobile_number;
             _ms.activate_code = passcode;
+            _ms.sw_version = sw_version;
             _ms.send_passcode =  send_passcode ??  true;
 
             System.Messaging.Message _msg = new System.Messaging.Message();
@@ -231,7 +233,7 @@ namespace BSM
         [JsonRpcMethod("activate")]
         [JsonRpcHelp("Client 啟用")]
 
-        public BSM_Result activate_q(string client_id, string device_id, string mobile_number, string model_info)
+        public BSM_Result activate_q(string client_id, string device_id, string mobile_number, string model_info,string sw_version)
         {
             BSM_ClientInfo client_info = new BSM_ClientInfo();
            
@@ -256,9 +258,8 @@ namespace BSM
             _ms.device_id = device_id;
             _ms.phone_no = mobile_number;
             _ms.model_info = model_info;
+            _ms.sw_version = sw_version;
            
-            
-
             System.Messaging.Message _msg = new System.Messaging.Message();
             _msg.Body = _ms;
             this.MsgQ_register.Send(_msg);
@@ -276,7 +277,7 @@ namespace BSM
         /// <param name="Activation_code"></param>
         /// <returns></returns>
 
-        [JsonRpcMethod("activate_o")]
+/*        [JsonRpcMethod("activate_o")]
         [JsonRpcHelp("Client 啟用")]
         public BSM_Result activate(string client_id, string device_id, string mobile_number,string model_info)
         {
@@ -430,7 +431,7 @@ namespace BSM
             return _result;
         }
 
-
+*/
 
 
         [JsonRpcMethod("promo_activate")]
@@ -633,12 +634,15 @@ namespace BSM
             string order_date,
             string software_group,
             string package_id,
+            JsonArray packages,
             int? price,
             int? pay_amount,
             string device_id,
             string action_date,
             string cancel_date,
             string expire_date,
+            string free_start_date,
+            string free_end_date,
             string orig_order_id,
             int? offset,
             string remark,
@@ -658,11 +662,14 @@ namespace BSM
             _partner_order.Add("order_date", order_date);
             _partner_order.Add("software_group", software_group);
             _partner_order.Add("package_id", package_id);
+            _partner_order.Add("packages", packages);
             _partner_order.Add("price", price);
             _partner_order.Add("pay_amount", pay_amount);
             _partner_order.Add("device_id", device_id);
             _partner_order.Add("action_date", action_date);
             _partner_order.Add("cancel_date", cancel_date);
+            _partner_order.Add("free_start", free_start_date);
+            _partner_order.Add("free_end", free_end_date);
             _partner_order.Add("orig_order_id", orig_order_id);
             _partner_order.Add("expire_date", expire_date);
             _partner_order.Add("offset", offset);
@@ -1316,7 +1323,13 @@ namespace BSM
             var read = new StreamReader(context.Request.InputStream);
             string jsontstr = read.ReadToEnd();
             context.Request.InputStream.Position = pos;
+            int card_pos = jsontstr.ToUpper().IndexOf("CARD_NUMBER");
+            if (card_pos > 0)
+            {
+                jsontstr = jsontstr.Substring(0, card_pos) + jsontstr.Substring(card_pos + 47);
+            }
             logger.Info(jsontstr);
+
 
             base.ProcessRequest(context);
         }

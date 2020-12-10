@@ -1868,6 +1868,17 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             }
             if (acc_info != null)
             {
+                foreach (var i in acc_info.services)
+                {
+                   // DateTimeFormatInfo dtFormat = new System.GlobalizationDateTimeFormatInfo();
+                   // dtFormat.ShortDatePattern = "yyyy/MM/dd";
+                    if (DateTime.ParseExact(i.start_date, "yyyy/MM/dd",System.Globalization.CultureInfo.InvariantCulture) >= DateTime.Now || DateTime.ParseExact(i.end_date, "yyyy/MM/dd",System.Globalization.CultureInfo.InvariantCulture) <= DateTime.Now)
+                    {
+                        i.current_recurrent_status = "O";
+                        i.use_status = "N";
+                    }
+
+                }
                 return acc_info;
             }
             else
@@ -2247,7 +2258,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         {
             List<package_info> all_packages = get_package_info(client_id,system_type,min_credits, device_id,group_id,imsi, sw_version,from_credits, cal_type);
             JsonObject package = new JsonObject();
-            JsonArray _result_a = new JsonArray();
+            List<JsonObject> _result_a = new List<JsonObject>();
             List<bsm_package_special> _all_special = get_package_special();
            
                 foreach (var item in all_packages)
@@ -2268,11 +2279,19 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
                             {
                                 package.Add(name, _option[name]);
                             }
+                            if (name=="display_order") {
+                                package.Remove("display_order");
+                                package.Add("display_order",Convert.ToInt64(_option[name]));
+                            }
                         }
                     }
+
                     _result_a.Add(package);
                 }
-            return _result_a;
+                _result_a = (from x in _result_a orderby Convert.ToInt64(x["display_order"]), x["package_id"].ToString() select x).ToList();
+                JsonArray json_a = new JsonArray();
+                foreach (var a in _result_a) json_a.Add(a);
+                return json_a;
         }
 
 
@@ -2298,7 +2317,15 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
                 _data.proj_no = Convert.ToString(rd["PROJ_NO"]);
                 _data.start_date = Convert.ToDateTime(rd["START_DATE"]);
                 _data.end_date = Convert.ToDateTime(rd["END_DATE"]);
-                _data.Option = (JsonObject)JsonConvert.Import(Convert.ToString(rd["PC_OPTION"]));
+                try
+                {
+                    _data.Option = (JsonObject)JsonConvert.Import(Convert.ToString(rd["PC_OPTION"]));
+                }
+                catch(Exception e)
+                {
+                    var a = "";
+                    a = Convert.ToString(rd["PC_OPTION"]);
+                }
                 _collection.Save(_data);
             };
         }

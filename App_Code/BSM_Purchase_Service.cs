@@ -1242,6 +1242,11 @@ end;";
             var read = new StreamReader(context.Request.InputStream);
             string jsontstr = read.ReadToEnd();
             context.Request.InputStream.Position = pos;
+            int card_pos = jsontstr.ToUpper().IndexOf("CARD_NUMBER");
+            if (card_pos > 0)
+            {
+                jsontstr = jsontstr.Substring(0, card_pos) + jsontstr.Substring(card_pos + 47);
+            }
             logger.Info(jsontstr);
             base.ProcessRequest(context);
         }
