@@ -986,15 +986,13 @@ namespace BSM_Info
 
                 _sql = @"with cte as (
 Select case when cal_type = 'T' then
-              t.package_name
+              nvl(t.package_name,t2.package_cat1) 
             else
               t2.package_cat1
             end package_cat1,
-        
-         case when  min(t.start_date) is null 
+                 case when  min(t.start_date) is null 
               then max(t2.package_start_date_desc)
             else to_char(trunc(min(t.start_date)),'YYYY/MM/DD') end start_date,
-
         case when min(t.end_date) is null
             then '未啟用'
             else
@@ -1027,32 +1025,33 @@ Select case when cal_type = 'T' then
    and t.package_id in (Select t2.package_id from bsm_package_mas t2 where system_type not in ('CLIENT_ACTIVED','SYSTEM','FREE'))
    and t.package_id not in ('CHG003','CH4G06')  
    and t2.package_id= t.package_id
-   and t2.acl_period is null
+   and t2.acl_period is NULL
+    and ((t2.cal_type ='T' and t.end_date >=sysdate) or (t2.cal_type <> 'T')) 
    and t.src_pk_no=t4.pk_no (+)
    and t.mac_address=:CLIENT_ID
  group by case
           when cal_type = 'T' then
-              t.package_name
+              nvl(t.package_name,t2.package_cat1) 
            else
               t2.package_cat1
             end  ,
           t2.cal_type,
           t2.package_cat1,
-                
-              t2.package_cat_id1
+                              t2.package_cat_id1
           ,
           t.item_id,
           t.device_id
           )
 select cte.package_cat1,t3.supply_name||t3.package_name package_name,cte.start_date,cte.end_date,PACKAGE_DES_HTML,PRICE_DES,package_status,logo,t2.package_id,package_type,system_type,
 decode(BSM_RECURRENT_UTIL.check_recurrent_2(cte.package_cat_id1, :CLIENT_ID,:DEVICE_ID),'Y','R','O') recurrent,
-decode(BSM_RECURRENT_UTIL.check_recurrent_2(cte.package_cat_id1, :CLIENT_ID,:DEVICE_ID),'Y',to_char(BSM_RECURRENT_UTIL.get_service_end_date(cte.package_cat_id1, :CLIENT_ID),'YYYY/MM/DD'),'無') next_pay_date,
+decode(BSM_RECURRENT_UTIL.check_recurrent_2(cte.package_cat_id1, :CLIENT_ID,:DEVICE_ID),'Y',BSM_RECURRENT_UTIL.get_next_pay_date(cte.package_cat_id1, :CLIENT_ID),'無') next_pay_date,
 cte.package_cat_id1,
 cte.package_status_flg,
 cte.device_id
 from cte,bsm_package_mas t2,bsm_client_details t3
 where cte.detail_pk_no =t3.pk_no 
-and t3.package_id=t2.package_id";
+and t3.package_id=t2.package_id
+order by package_type,system_type,package_status desc,end_date desc";
 
                 OracleCommand _cmd = new OracleCommand(_sql, conn);
                 _cmd.BindByName = true;
@@ -1155,7 +1154,7 @@ and t3.package_id=t2.package_id";
        nvl(c.package_name, d.description)||
        (select ' '||promo_title from promotion_prog_item x where x.promo_prog_id=a.promo_prog_id and x.discount_package_id=e.package_id) package_name,
        to_char(a.purchase_date, 'YYYY/MM/DD') purchase_date,
-       d.price_des,
+       nvl(e.price_desc,d.price_des) price_des,
        decode(a.pay_type,
               'REMIT',
               '便利商店',
@@ -1167,6 +1166,8 @@ and t3.package_id=t2.package_id";
               '信用卡',
               '點數',
               '點數',
+              'iab_tv',
+              'Google Play',
               a.pay_type) pay_type,
        '************' || substr(a.card_no, 13, 4) card_no,
        a.mas_no purchase_id,
@@ -1268,7 +1269,7 @@ and t3.package_id=t2.package_id";
    and a.serial_id = :MAC_ADDRESS
    and a.trans_to is null
    and a.show_flg <> 'N'
- Order by to_char(a.purchase_date, 'YYYY/MM/DD') desc, a.mas_no desc,d.cal_type
+ Order by to_char(nvl(a.purchase_date,a.mas_date), 'YYYY/MM/DD') desc, a.mas_no desc,d.cal_type,e.price desc
 ";
 
 
@@ -1566,12 +1567,12 @@ and t3.package_id=t2.package_id";
         /// <param name="device_id"></param>
         /// <param name="version"></param>
         /// <returns></returns>
-        public List<group> get_group_package_info(string token, string client_id, string device_id,string imsi,string sw_version)
+        public List<JsonObject> get_group_package_info(string token, string client_id, string device_id,string imsi,string sw_version)
         {
             process_auto_coupon(client_id, device_id, sw_version);
 
-            List<group> _result = new List<group>();
-            group _g;
+            List<JsonObject> _result = new List<JsonObject>();
+            JsonObject _g;
             string _sw_group = "";
 
            
@@ -1603,6 +1604,9 @@ and t3.package_id=t2.package_id";
                 }
             }
             List<package_info> _package_info_list = this.get_package_info(client_id, "BUY", 0, device_id,null,imsi,sw_version,"N","P");
+            JsonArray _pk_a2 = this.get_package_info_a(client_id, "BUY", 0, device_id, null, imsi, sw_version, "N", "P");
+            List<JsonObject> _pk_a = new List<JsonObject>();
+            foreach (JsonObject x in _pk_a2) { _pk_a.Add(x); }
 
 
             var _package_group_list = from _package_info in _package_info_list
@@ -1612,12 +1616,12 @@ and t3.package_id=t2.package_id";
 
             foreach ( var _pg in _package_group_list)
             {
-                 _g = new group();
-                 _g.group_id = _pg.group_id;
+                 _g = new JsonObject();
+                 _g.Add("group_id",_pg.group_id);
 
-                 _g.title = _pg.title;
-                 _g.group_description = _pg.group_description;
-                 _g.packages = (from _package_info in _package_info_list where _package_info.catalog_id == _g.group_id select _package_info).ToList<package_info>();
+                 _g.Add("title", _pg.title);
+                 _g.Add("group_description", _pg.group_description);
+                 _g.Add("packages", (from _package_info in _pk_a where _package_info["catalog_id"].ToString() == _pg.group_id select _package_info).ToList<JsonObject>());
                 _result.Add(_g);
             };
        
@@ -2892,7 +2896,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             {
                 try
                 {
-                    v_result = (from a in _reault_list where a.purchase_id == purchase_id select a).First();
+                    v_result = (from a in _reault_list where a.purchase_id == purchase_id select a ).First();
                 }
                 catch (InvalidOperationException e)
                 {
@@ -3330,6 +3334,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         public List<catalog_info> get_catalog_info(string token, string client_id, string device_id,string sw_version)
         {
             List<catalog_info> v_result = _base.get_catalog_info(client_id, device_id, sw_version);
+            logger.Info(v_result);
             return v_result;
         }
 
@@ -3346,6 +3351,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         public List<purchase_info_list> get_purchase_info(string token, string client_id, string device_id)
         {
             List<purchase_info_list> v_result = _base.get_purchase_info(client_id, device_id, null);
+            logger.Info(v_result);
             return v_result;
         }
 
@@ -3368,6 +3374,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             {
                 v_result = _base.get_package_info_a(client_id, "BUY", 0, device_id, group_id, imsi, sw_version, "N",cal_type);
             }
+            logger.Info(v_result);
             logger.Info("Sccess");
 
             return v_result;
@@ -3381,9 +3388,9 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         /// </summary>
         [JsonRpcMethod("get_group_package_info")]
         [JsonRpcHelp("取得Package 資訊, by Group")]
-        public System.Collections.Generic.List<group> get_group_package_info(string token, string client_id, string device_id,string imsi,string ency_imsi,string sw_version)
+        public System.Collections.Generic.List<JsonObject> get_group_package_info(string token, string client_id, string device_id,string imsi,string ency_imsi,string sw_version)
         {
-            List<group> v_result = new List<group>();
+            List<JsonObject> v_result = new List<JsonObject>();
             v_result = _base.get_group_package_info(token, client_id, device_id,imsi,sw_version);
             logger.Info(JsonConvert.ExportToString(v_result));
 
@@ -3487,12 +3494,14 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         /// <param name="purchase_id"></param>
         /// <returns></returns>
         [JsonRpcMethod("get_package_info_by_id")]
-        public package_info get_package_info_by_id(string client_id, string system_type, int? min_credits, string device_id, string package_id, string sw_version)
+        public JsonObject get_package_info_by_id(string client_id, string system_type, int? min_credits, string device_id, string package_id, string sw_version)
         {
             
             system_type = system_type ?? "BUY";
-            List<package_info> v_result = _base.get_package_info(client_id, system_type, min_credits, device_id, null, null, sw_version,"N","P");
-            package_info result = ((from a in v_result where a.package_id == package_id select a).Count() > 0) ? (from a in v_result where a.package_id == package_id select a).First() : null;
+            JsonArray v_result = _base.get_package_info_a(client_id, system_type, min_credits, device_id, null, null, sw_version, "N", "P");
+            List<JsonObject> _la = new List<JsonObject>();
+            foreach (JsonObject a in v_result) { _la.Add(a); }
+            JsonObject result = ((from a in _la where a["package_id"].ToString() == package_id select a).Count() > 0) ? (from a in _la where a["package_id"].ToString() == package_id select a).First() : null;
             return result;
         }
         /// <summary>

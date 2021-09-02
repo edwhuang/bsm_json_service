@@ -145,6 +145,7 @@ namespace BSM
         public string promo_code;
         public string promote_code;
         public string order;
+        public string vendor_id;
 
         public BSM_Purchase_Request()
         {

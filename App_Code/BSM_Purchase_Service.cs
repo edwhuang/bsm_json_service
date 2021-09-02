@@ -399,7 +399,7 @@ namespace BSM
         /// <returns></returns>
         [JsonRpcMethod("purchase")]
         [JsonRpcHelp("Client 購買")]
-        public BSM_Result purchase(string token, string device_id, string sw_version, BSM_Purchase_Request purchase_info, string vendor_id)
+        public BSM_Result purchase(string token, string device_id, string sw_version,string software_version, BSM_Purchase_Request purchase_info, string vendor_id)
         {
 
             BSM_Result result;
@@ -449,6 +449,7 @@ namespace BSM
 
             _option.Add("ios_receipt_info", purchase_info.ios_receipt_info);
             _option.Add("order", purchase_info.order);
+            _option.Add("vendor_id", purchase_info.vendor_id);
             if (purchase_info.promote_code != "" && !(purchase_info.promote_code == null))
             { _option.Add("promo_code", purchase_info.promote_code); }
             else
@@ -582,6 +583,7 @@ namespace BSM
                                 try
                                 {
                                     _receipt = (JsonObject)ios_result["latest_receipt_info"];
+
                                 }
                                 catch (Exception e)
                                 {
@@ -613,6 +615,7 @@ namespace BSM
                                 }
                                 catch (Exception e)
                                 {
+                                    
                                 }
 
 
@@ -633,6 +636,10 @@ namespace BSM
                         }
                     }
 
+                    DateTime d = DateTime.Now.AddDays(-3);
+
+                    _rec_l = (from a in _rec_l orderby a.purchase_date descending select a).ToList();
+
                     conn.Open();
                     try
                     {
@@ -649,10 +656,8 @@ namespace BSM
                             return result;
                         }
 
-                        // Order by Purchase Date
-
-                        _rec_l = (from v in _rec_l orderby v.purchase_date select v).ToList();
-
+                     
+                        int res_cnt = 0;
                         // get bsm pk_no
                         foreach (IOS_ReceiptInfo _r in _rec_l)
                         {
@@ -714,10 +719,11 @@ namespace BSM
                                 json_purchase_info.Add("purchase_info", purchase_info);
                                 json_purchase_info.Add("verify_receipt", _receipt);
                                 json_purchase_info.Add("receipt", purchase_info.ios_receipt_info);
-
+                                string proce_name = @"crt_purchase_ios";
+                                if (res_cnt == 0) { proce_name = @"p_crt_purchase_ios"; }
 
                                 string _sql_purchae = @"begin
-    crt_purchase_ios(p_paytype => :p_paytype,
+    "+proce_name+@"(p_paytype => :p_paytype,
                    p_client_id => :p_client_id,
                    p_device_id => :p_device_id,
                    p_package_id => :p_package_id,
@@ -765,6 +771,7 @@ end;";
                                     {
                                         result.purchase_id = Convert.ToString(_mas_no.Value);
                                     }
+                                    res_cnt++;
                                 }
                                 finally
                                 {
@@ -790,7 +797,7 @@ end;";
                     }
 
 
-
+                    logger.Info(JsonConvert.ExportToString(result));
                     return result;
                 }
                 else
@@ -809,7 +816,7 @@ end;";
 
                     result.result_code = "BSM-00309";
                     result.result_message = "IOS 認證失敗-" + ios_result["status"].ToString() + ios_error_code[ios_result["status"].ToString()];
-
+                    logger.Info(JsonConvert.ExportToString(result));
                     return result;
                 }
 
@@ -888,7 +895,7 @@ end;";
                     _option.Add("min", imsi);
                 }
 
-                _option.Add("vendor_id", vendor_id);
+              //  _option.Add("vendor_id", vendor_id);
 
                 string option = JsonConvert.ExportToString(_option);
 
@@ -902,7 +909,7 @@ end;";
                 OracleParameter param6 = new OracleParameter();
                 param6.ParameterName = "SW_VERSION";
                 param6.Direction = ParameterDirection.Input;
-                param6.Value = sw_version;
+                param6.Value = software_version??sw_version;
                 cmd.Parameters.Add(param6);
 
                 cmd.ExecuteNonQuery();
@@ -1494,7 +1501,7 @@ end;";
                 var httpWebRequest = (HttpWebRequest)System.Net.WebRequest.Create(url);
                 httpWebRequest.ProtocolVersion = HttpVersion.Version10;//http1.0
                 //httpWebRequest.Connection = "Close";
-                httpWebRequest.ContentType = "application/json";
+                httpWebRequest.ContentType = "application/json; charset=utf-8";
                 httpWebRequest.Method = "POST";
                 httpWebRequest.ContentLength = jsonBytes.Length;
                 var streamWriter = httpWebRequest.GetRequestStream();
