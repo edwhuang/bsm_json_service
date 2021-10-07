@@ -402,328 +402,332 @@ namespace BSM
         public BSM_Result purchase(string token, string device_id, string sw_version,string software_version, BSM_Purchase_Request purchase_info, string vendor_id)
         {
 
-            BSM_Result result;
-            BSM_Info.BSM_Info_Service_base BSM_Info_base = new BSM_Info.BSM_Info_Service_base(conn.ConnectionString, MongoDBConnectString, MongoDBConnectString_package, MongoDB_Database);
-
-            string imsi = purchase_info.imsi;
-            if (purchase_info.device_id != null && purchase_info.device_id != "")
+            BSM_Result result = new BSM_Result();
+             try
             {
-                device_id = purchase_info.device_id;
-            }
+                BSM_Info.BSM_Info_Service_base BSM_Info_base = new BSM_Info.BSM_Info_Service_base(conn.ConnectionString, MongoDBConnectString, MongoDBConnectString_package, MongoDB_Database);
 
-            result = new BSM_Result();
-
-            purchase_info.client_id = purchase_info.client_id.ToUpper();
-            JsonObject _option = new JsonObject();
-
-            if ((purchase_info.client_id == null) || (purchase_info.client_id == ""))
-            {
-                result.result_code = "BSM-00301";
-                result.result_message = "未輸入ClientID";
-                return result;
-            }
-
-            if ((purchase_info.pay_type == null) || (purchase_info.pay_type == ""))
-            {
-                result.result_code = "BSM-00304";
-                result.result_message = "未輸入付款方式認證碼";
-                return result;
-            }
-
-
-            if (purchase_info.pay_type == "APT" && (imsi == null || imsi == ""))
-            {
-                result.result_code = "BSM-00305";
-                result.result_message = "沒有亞太帳號資料";
-                return result;
-            };
-
-
-            if (purchase_info.pay_type == "IOS" && (purchase_info.ios_receipt_info == null || purchase_info.ios_receipt_info == ""))
-            {
-                result.result_code = "BSM-00306";
-                result.result_message = "IOS沒有ios_receipt_info";
-
-                return result;
-            };
-
-            _option.Add("ios_receipt_info", purchase_info.ios_receipt_info);
-            _option.Add("order", purchase_info.order);
-            _option.Add("vendor_id", purchase_info.vendor_id);
-            if (purchase_info.promote_code != "" && !(purchase_info.promote_code == null))
-            { _option.Add("promo_code", purchase_info.promote_code); }
-            else
-            {
-                _option.Add("promo_code", purchase_info.promo_code);
-            }
-
-            if ((purchase_info.pay_type != "贈送") && (purchase_info.pay_type != "儲值卡") && (purchase_info.pay_type != "CREDITS") && (purchase_info.pay_type != "APT") && (purchase_info.pay_type != "IOS"))
-            {
-                if ((purchase_info.card_number == null) || (purchase_info.card_number == ""))
+                string imsi = purchase_info.imsi;
+                if (purchase_info.device_id != null && purchase_info.device_id != "")
                 {
-                    result.result_code = "BSM-00302";
-                    result.result_message = "未輸入卡號";
+                    device_id = purchase_info.device_id;
+                }
+
+                result = new BSM_Result();
+
+                purchase_info.client_id = purchase_info.client_id.ToUpper();
+                JsonObject _option = new JsonObject();
+
+                if ((purchase_info.client_id == null) || (purchase_info.client_id == ""))
+                {
+                    result.result_code = "BSM-00301";
+                    result.result_message = "未輸入ClientID";
                     return result;
                 }
 
-                if ((purchase_info.card_type == null) || (purchase_info.card_type == ""))
-                {
-                    result.result_code = "BSM-00303";
-                    result.result_message = "未輸入信用卡種類";
-                    return result;
-                }
-
-
-                if ((purchase_info.card_expiry == null) || (purchase_info.card_expiry == ""))
+                if ((purchase_info.pay_type == null) || (purchase_info.pay_type == ""))
                 {
                     result.result_code = "BSM-00304";
-                    result.result_message = "未輸入信用卡期限";
+                    result.result_message = "未輸入付款方式認證碼";
                     return result;
                 }
 
 
-                if ((purchase_info.cvc2 == null) || (purchase_info.cvc2 == ""))
+                if (purchase_info.pay_type == "APT" && (imsi == null || imsi == ""))
                 {
-                    result.result_code = "BSM-00304";
-                    result.result_message = "未輸入信用卡認證碼";
+                    result.result_code = "BSM-00305";
+                    result.result_message = "沒有亞太帳號資料";
                     return result;
-                }
+                };
 
-                if (purchase_info.card_number.Substring(0, 1) != "4" && purchase_info.card_number.Substring(0, 1) != "5")
-                {
-                    result.result_code = "BSM-00307";
-                    result.result_message = "信用卡卡號錯誤";
-                    return result;
-                }
 
-                if ((purchase_info.card_type == "VISA" && purchase_info.card_number.Substring(0, 1) != "4") || (purchase_info.card_type == "MASTER" && purchase_info.card_number.Substring(0, 1) != "5"))
+                if (purchase_info.pay_type == "IOS" && (purchase_info.ios_receipt_info == null || purchase_info.ios_receipt_info == ""))
                 {
                     result.result_code = "BSM-00306";
-                    result.result_message = "信用卡種類錯誤";
+                    result.result_message = "IOS沒有ios_receipt_info";
+
                     return result;
-                }
-            }
+                };
 
-            /* IOS 先確認是否購買成功  */
-
-            if (purchase_info.pay_type == "IOS")
-            {
-
-
-                string ticket = JsonConvert.ExportToString(purchase_info.ios_receipt_info);
-                string ticket_uid = FormsAuthentication.HashPasswordForStoringInConfigFile(ticket, "MD5");
-                long _purchase_pk_no = 0;
-
-                JsonObject ios_result = _ios_verifyReceipt(null, purchase_info.ios_receipt_info, "c7cdbd0220b54ab99af16548b0f27733");
-                JsonObject _receipt = new JsonObject();
-                IOS_ReceiptInfo _rec = new IOS_ReceiptInfo();
-                List<IOS_ReceiptInfo> _rec_l = new List<IOS_ReceiptInfo>();
-
-                if (ios_result["status"].ToString() == "21007")
+                _option.Add("ios_receipt_info", purchase_info.ios_receipt_info);
+                _option.Add("order", purchase_info.order);
+                _option.Add("vendor_id", purchase_info.vendor_id);
+                if (purchase_info.promote_code != "" && !(purchase_info.promote_code == null))
+                { _option.Add("promo_code", purchase_info.promote_code); }
+                else
                 {
-                    ios_result = _ios_verifyReceipt_sandbox(null, purchase_info.ios_receipt_info, "c7cdbd0220b54ab99af16548b0f27733");
-                    _receipt = (JsonObject)ios_result["receipt"];
+                    _option.Add("promo_code", purchase_info.promo_code);
                 }
 
-                if (ios_result["status"].ToString() == "0")
+                if ((purchase_info.pay_type != "贈送") && (purchase_info.pay_type != "儲值卡") && (purchase_info.pay_type != "CREDITS") && (purchase_info.pay_type != "APT") && (purchase_info.pay_type != "IOS"))
                 {
-                    if (ios_result["latest_receipt_info"] != null)
+                    if ((purchase_info.card_number == null) || (purchase_info.card_number == ""))
                     {
-                        try
-                        {
-                            JsonArray _ja = (JsonArray)ios_result["latest_receipt_info"];
-                            foreach (JsonObject _j in _ja)
-                            {
-                                _rec = new IOS_ReceiptInfo();
-                                _rec._id = _j["transaction_id"].ToString();
-                                _rec.transaction_id = _j["transaction_id"].ToString();
-                                _rec.is_in_intro_offer_period = _j["is_in_intro_offer_period"].ToString();
-                                _rec.original_transaction_id = _j["original_transaction_id"].ToString();
-                                _rec.product_id = _j["product_id"].ToString();
-                                _rec.purchase_date = _j["purchase_date"].ToString();
-                                _rec.expires_date = _j["expires_date"].ToString();
-                                _rec.expires_date_formatted = _j["expires_date"].ToString();
-                                _rec.is_trial_period = _j["is_trial_period"].ToString();
-                                _rec.original_purchase_date = _j["original_purchase_date"].ToString();
-                                _rec_l.Add(_rec);
-                            }
-                        }catch(Exception e)
-                        {
-                        }
+                        result.result_code = "BSM-00302";
+                        result.result_message = "未輸入卡號";
+                        return result;
+                    }
 
+                    if ((purchase_info.card_type == null) || (purchase_info.card_type == ""))
+                    {
+                        result.result_code = "BSM-00303";
+                        result.result_message = "未輸入信用卡種類";
+                        return result;
+                    }
+
+
+                    if ((purchase_info.card_expiry == null) || (purchase_info.card_expiry == ""))
+                    {
+                        result.result_code = "BSM-00304";
+                        result.result_message = "未輸入信用卡期限";
+                        return result;
+                    }
+
+
+                    if ((purchase_info.cvc2 == null) || (purchase_info.cvc2 == ""))
+                    {
+                        result.result_code = "BSM-00304";
+                        result.result_message = "未輸入信用卡認證碼";
+                        return result;
+                    }
+
+                    if (purchase_info.card_number.Substring(0, 1) != "4" && purchase_info.card_number.Substring(0, 1) != "5")
+                    {
+                        result.result_code = "BSM-00307";
+                        result.result_message = "信用卡卡號錯誤";
+                        return result;
+                    }
+
+                    if ((purchase_info.card_type == "VISA" && purchase_info.card_number.Substring(0, 1) != "4") || (purchase_info.card_type == "MASTER" && purchase_info.card_number.Substring(0, 1) != "5"))
+                    {
+                        result.result_code = "BSM-00306";
+                        result.result_message = "信用卡種類錯誤";
+                        return result;
+                    }
+                }
+
+                /* IOS 先確認是否購買成功  */
+
+                if (purchase_info.pay_type == "IOS")
+                {
+
+
+                    string ticket = JsonConvert.ExportToString(purchase_info.ios_receipt_info);
+                    string ticket_uid = FormsAuthentication.HashPasswordForStoringInConfigFile(ticket, "MD5");
+                    long _purchase_pk_no = 0;
+
+                    JsonObject ios_result = _ios_verifyReceipt(null, purchase_info.ios_receipt_info, "c7cdbd0220b54ab99af16548b0f27733");
+                    JsonObject _receipt = new JsonObject();
+                    IOS_ReceiptInfo _rec = new IOS_ReceiptInfo();
+                    List<IOS_ReceiptInfo> _rec_l = new List<IOS_ReceiptInfo>();
+
+                    if (ios_result["status"].ToString() == "21007")
+                    {
+                        ios_result = _ios_verifyReceipt_sandbox(null, purchase_info.ios_receipt_info, "c7cdbd0220b54ab99af16548b0f27733");
+                        _receipt = (JsonObject)ios_result["receipt"];
                     }
                    
-                    if (ios_result["receipt"] != null)
+
+                    if (ios_result["status"].ToString() == "0")
                     {
-                        _receipt = (JsonObject) ios_result["receipt"];
-                        if (_receipt["in_app"] != null)
+                        if (ios_result["latest_receipt_info"] != null)
                         {
-                            JsonArray _ja = (JsonArray) _receipt["in_app"];
-                            foreach (JsonObject _j in _ja)
+                            try
                             {
+                                JsonArray _ja = (JsonArray)ios_result["latest_receipt_info"];
+                                foreach (JsonObject _j in _ja)
+                                {
+                                    _rec = new IOS_ReceiptInfo();
+                                    _rec._id = _j["transaction_id"].ToString();
+                                    _rec.transaction_id = _j["transaction_id"].ToString();
+                                    _rec.is_in_intro_offer_period = _j["is_in_intro_offer_period"].ToString();
+                                    _rec.original_transaction_id = _j["original_transaction_id"].ToString();
+                                    _rec.product_id = _j["product_id"].ToString();
+                                    _rec.purchase_date = _j["purchase_date"].ToString();
+                                    _rec.expires_date = _j["expires_date"].ToString();
+                                    _rec.expires_date_formatted = _j["expires_date"].ToString();
+                                    _rec.is_trial_period = _j["is_trial_period"].ToString();
+                                    _rec.original_purchase_date = _j["original_purchase_date"].ToString();
+                                    _rec_l.Add(_rec);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                            }
+
+                        }
+
+                        if (ios_result["receipt"] != null)
+                        {
+                            _receipt = (JsonObject)ios_result["receipt"];
+                            if (_receipt["in_app"] != null)
+                            {
+                                JsonArray _ja = (JsonArray)_receipt["in_app"];
+                                foreach (JsonObject _j in _ja)
+                                {
+                                    _rec = new IOS_ReceiptInfo();
+                                    _rec._id = _j["transaction_id"].ToString();
+                                    _rec.transaction_id = _j["transaction_id"].ToString();
+                                    _rec.is_in_intro_offer_period = _j["is_in_intro_offer_period"].ToString();
+                                    _rec.original_transaction_id = _j["original_transaction_id"].ToString();
+                                    _rec.product_id = _j["product_id"].ToString();
+                                    _rec.purchase_date = _j["purchase_date"].ToString();
+                                    _rec.expires_date = _j["expires_date"].ToString();
+                                    _rec.expires_date_formatted = _j["expires_date"].ToString();
+                                    _rec.is_trial_period = _j["is_trial_period"].ToString();
+                                    _rec.original_purchase_date = _j["original_purchase_date"].ToString();
+                                    _rec_l.Add(_rec);
+                                }
+                            }
+                            else
+                            {
+                                if (ios_result["latest_receipt_info"] != null)
+                                {
+                                    JsonArray _ja;
+                                    try
+                                    {
+                                        _receipt = (JsonObject)ios_result["latest_receipt_info"];
+
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        _receipt = null;
+                                    }
+
+                                    try
+                                    {
+                                        _ja = (JsonArray)_receipt["latest_receipt_info"];
+                                        if (_ja != null)
+                                        {
+                                            foreach (JsonObject _j in _ja)
+                                            {
+                                                _rec = new IOS_ReceiptInfo();
+                                                _rec._id = _j["transaction_id"].ToString();
+                                                _rec.transaction_id = _j["transaction_id"].ToString();
+                                                _rec.is_in_intro_offer_period = _j["is_in_intro_offer_period"].ToString();
+                                                _rec.original_transaction_id = _j["original_transaction_id"].ToString();
+                                                _rec.product_id = _j["product_id"].ToString();
+                                                _rec.purchase_date = _j["purchase_date"].ToString();
+                                                _rec.expires_date = _j["expires_date"].ToString();
+                                                _rec.expires_date_formatted = _j["expires_date"].ToString();
+                                                _rec.is_trial_period = _j["is_trial_period"].ToString();
+                                                _rec.original_purchase_date = _j["original_purchase_date"].ToString();
+                                                _rec_l.Add(_rec);
+                                            }
+                                        }
+
+                                    }
+                                    catch (Exception e)
+                                    {
+
+                                    }
+
+
+
+                                }
                                 _rec = new IOS_ReceiptInfo();
-                                _rec._id = _j["transaction_id"].ToString();
-                                _rec.transaction_id = _j["transaction_id"].ToString();
-                                _rec.is_in_intro_offer_period = _j["is_in_intro_offer_period"].ToString();
-                                _rec.original_transaction_id = _j["original_transaction_id"].ToString();
-                                _rec.product_id = _j["product_id"].ToString();
-                                _rec.purchase_date = _j["purchase_date"].ToString();
-                                _rec.expires_date = _j["expires_date"].ToString();
-                                _rec.expires_date_formatted = _j["expires_date"].ToString();
-                                _rec.is_trial_period = _j["is_trial_period"].ToString();
-                                _rec.original_purchase_date = _j["original_purchase_date"].ToString();
+                                _rec._id = _receipt["transaction_id"].ToString();
+                                _rec.transaction_id = _receipt["transaction_id"].ToString();
+                                _rec.original_transaction_id = _receipt["original_transaction_id"].ToString();
+                                _rec.product_id = _receipt["product_id"].ToString();
+                                _rec.purchase_date = _receipt["purchase_date"].ToString();
+                                _rec.expires_date = _receipt["expires_date"].ToString();
+                                _rec.expires_date_formatted = _receipt["expires_date_formatted"].ToString();
+                                _rec.is_trial_period = _receipt["is_trial_period"].ToString();
+                                _rec.is_in_intro_offer_period = _receipt["is_in_intro_offer_period"].ToString();
+                                _rec.original_purchase_date = _receipt["original_purchase_date"].ToString();
                                 _rec_l.Add(_rec);
                             }
                         }
-                        else
+
+                        DateTime d = DateTime.Now.AddDays(-3);
+
+                        _rec_l = (from a in _rec_l orderby a.purchase_date descending select a).ToList();
+
+                        conn.Open();
+                        try
                         {
-                            if (ios_result["latest_receipt_info"] != null)
+                            string _sql_pk_tick = "SELECT 'x' FROM bsm_ios_receipt_mas WHERE ticket_uid = :ticket_uid and created >= ( sysdate)";
+                            OracleCommand _cmd_ticket = new OracleCommand(_sql_pk_tick, conn);
+                            _cmd_ticket.BindByName = true;
+                            _cmd_ticket.Parameters.Add("TICKET_UID", ticket_uid);
+                            OracleDataReader _rd_ticket = _cmd_ticket.ExecuteReader();
+                            /* 必須只驗證成功,或是還未送的 */
+                            if (_rd_ticket.Read())
                             {
-                                JsonArray _ja;
-                                try
-                                {
-                                    _receipt = (JsonObject)ios_result["latest_receipt_info"];
+                                result.result_code = "BSM-00404";
+                                result.result_message = "重複傳送";
+                                return result;
+                            }
 
-                                }
-                                catch (Exception e)
-                                {
-                                    _receipt = null;
-                                }
 
-                                try
+                            int res_cnt = 0;
+                            // get bsm pk_no
+                            foreach (IOS_ReceiptInfo _r in _rec_l)
+                            {
+
+                                if (mongo_save_ios_receiptinfo(_r))
                                 {
-                                    _ja = (JsonArray)_receipt["latest_receipt_info"];
-                                    if (_ja != null)
+                                    string _sql_pk_no = "Select Seq_Bsm_Purchase_Pk_No.Nextval PK_NO From Dual";
+                                    OracleCommand _cmd = new OracleCommand(_sql_pk_no, conn);
+                                    OracleDataReader _rd = _cmd.ExecuteReader();
+                                    try
                                     {
-                                        foreach (JsonObject _j in _ja)
-                                        {
-                                            _rec = new IOS_ReceiptInfo();
-                                            _rec._id = _j["transaction_id"].ToString();
-                                            _rec.transaction_id = _j["transaction_id"].ToString();
-                                            _rec.is_in_intro_offer_period = _j["is_in_intro_offer_period"].ToString();
-                                            _rec.original_transaction_id = _j["original_transaction_id"].ToString();
-                                            _rec.product_id = _j["product_id"].ToString();
-                                            _rec.purchase_date = _j["purchase_date"].ToString();
-                                            _rec.expires_date = _j["expires_date"].ToString();
-                                            _rec.expires_date_formatted = _j["expires_date"].ToString();
-                                            _rec.is_trial_period = _j["is_trial_period"].ToString();
-                                            _rec.original_purchase_date = _j["original_purchase_date"].ToString();
-                                            _rec_l.Add(_rec);
-                                        }
+                                        if (_rd.Read()) _purchase_pk_no = Convert.ToInt32(_rd[0]);
+                                    }
+                                    finally
+                                    {
+                                        _rd.Dispose();
                                     }
 
-                                }
-                                catch (Exception e)
-                                {
-                                    
-                                }
+                                    string _sql_insert_receipt = @"insert into bsm_ios_receipt_mas(mas_pk_no,receipt,password,ios_product_code,ticket_uid,created,CLIENT_ID,PACKAGE_ID)  values(:P_ORDER_NO,:P_RECEIPT,:P_PASSWORD,:P_IOS_PRODUCT_CODE,:TICKET_UID,sysdate,:CLIENT_ID,:PACKAGE_ID)";
+                                    OracleCommand _cmd_rep = new OracleCommand(_sql_insert_receipt, conn);
+                                    try
+                                    {
+                                        _cmd_rep.BindByName = true;
+                                        _cmd_rep.Parameters.Add("P_ORDER_NO", _purchase_pk_no);
+                                        _cmd_rep.Parameters.Add("P_RECEIPT", OracleDbType.Clob, ticket, ParameterDirection.Input);
+                                        _cmd_rep.Parameters.Add("P_PASSWORD", "c7cdbd0220b54ab99af16548b0f27733");
+                                        _cmd_rep.Parameters.Add("P_IOS_PRODUCT_CODE", purchase_info.details[0].ios_product_code);
+                                        _cmd_rep.Parameters.Add("TICKET_UID", ticket_uid);
+                                        _cmd_rep.Parameters.Add("CLIENT_ID", purchase_info.client_id);
+                                        _cmd_rep.Parameters.Add("PACKAGE_ID", purchase_info.details[0].package_id);
+                                        _cmd_rep.ExecuteNonQuery();
+                                    }
+                                    finally
+                                    {
+                                        _cmd_rep.Dispose();
+                                    }
+
+                                    try
+                                    {
+
+                                        ios_receipt_info _ios_receipt_info;
+                                        _ios_receipt_info = new ios_receipt_info();
+                                        _ios_receipt_info._id = _purchase_pk_no.ToString();
+                                        _ios_receipt_info.client_id = Convert.ToString(_rd["CLIENT_ID"]);
+                                        _ios_receipt_info.password = "c7cdbd0220b54ab99af16548b0f27733";
+                                        _ios_receipt_info.package_id = purchase_info.details[0].package_id;
+                                        _ios_receipt_info.receipt = ticket;
+                                        _ios_receipt_info.ticket_uid = ticket_uid;
+
+                                        mongo_save_ios_receipt(_ios_receipt_info);
+                                    }
+                                    catch
+                                    { };
 
 
-                                
-                            }
-                            _rec = new IOS_ReceiptInfo();
-                            _rec._id = _receipt["transaction_id"].ToString();
-                            _rec.transaction_id = _receipt["transaction_id"].ToString();
-                            _rec.original_transaction_id = _receipt["original_transaction_id"].ToString();
-                            _rec.product_id = _receipt["product_id"].ToString();
-                            _rec.purchase_date = _receipt["purchase_date"].ToString();
-                            _rec.expires_date = _receipt["expires_date"].ToString();
-                            _rec.expires_date_formatted = _receipt["expires_date_formatted"].ToString();
-                            _rec.is_trial_period = _receipt["is_trial_period"].ToString();
-                            _rec.is_in_intro_offer_period = _receipt["is_in_intro_offer_period"].ToString(); 
-                            _rec.original_purchase_date = _receipt["original_purchase_date"].ToString();
-                            _rec_l.Add(_rec);
-                        }
-                    }
+                                    string src_no = purchase_info.session_uid;
 
-                    DateTime d = DateTime.Now.AddDays(-3);
+                                    JsonObject json_purchase_info = new JsonObject();
+                                    json_purchase_info.Add("purchase_info", purchase_info);
+                                    json_purchase_info.Add("verify_receipt", _receipt);
+                                    json_purchase_info.Add("receipt", purchase_info.ios_receipt_info);
+                                    string proce_name = @"crt_purchase_ios";
+                                    if (res_cnt == 0) { proce_name = @"p_crt_purchase_ios"; }
 
-                    _rec_l = (from a in _rec_l orderby a.purchase_date descending select a).ToList();
-
-                    conn.Open();
-                    try
-                    {
-                        string _sql_pk_tick = "SELECT 'x' FROM bsm_ios_receipt_mas WHERE ticket_uid = :ticket_uid and created >= ( sysdate)";
-                        OracleCommand _cmd_ticket = new OracleCommand(_sql_pk_tick, conn);
-                        _cmd_ticket.BindByName = true;
-                        _cmd_ticket.Parameters.Add("TICKET_UID", ticket_uid);
-                        OracleDataReader _rd_ticket = _cmd_ticket.ExecuteReader();
-                        /* 必須只驗證成功,或是還未送的 */
-                        if (_rd_ticket.Read())
-                        {
-                            result.result_code = "BSM-00404";
-                            result.result_message = "重複傳送";
-                            return result;
-                        }
-
-                     
-                        int res_cnt = 0;
-                        // get bsm pk_no
-                        foreach (IOS_ReceiptInfo _r in _rec_l)
-                        {
-
-                            if (mongo_save_ios_receiptinfo(_r))
-                            {
-                                string _sql_pk_no = "Select Seq_Bsm_Purchase_Pk_No.Nextval PK_NO From Dual";
-                                OracleCommand _cmd = new OracleCommand(_sql_pk_no, conn);
-                                OracleDataReader _rd = _cmd.ExecuteReader();
-                                try
-                                {
-                                    if (_rd.Read()) _purchase_pk_no = Convert.ToInt32(_rd[0]);
-                                }
-                                finally
-                                {
-                                    _rd.Dispose();
-                                }
-
-                                string _sql_insert_receipt = @"insert into bsm_ios_receipt_mas(mas_pk_no,receipt,password,ios_product_code,ticket_uid,created,CLIENT_ID,PACKAGE_ID)  values(:P_ORDER_NO,:P_RECEIPT,:P_PASSWORD,:P_IOS_PRODUCT_CODE,:TICKET_UID,sysdate,:CLIENT_ID,:PACKAGE_ID)";
-                                OracleCommand _cmd_rep = new OracleCommand(_sql_insert_receipt, conn);
-                                try
-                                {
-                                    _cmd_rep.BindByName = true;
-                                    _cmd_rep.Parameters.Add("P_ORDER_NO", _purchase_pk_no);
-                                    _cmd_rep.Parameters.Add("P_RECEIPT", OracleDbType.Clob, ticket, ParameterDirection.Input);
-                                    _cmd_rep.Parameters.Add("P_PASSWORD", "c7cdbd0220b54ab99af16548b0f27733");
-                                    _cmd_rep.Parameters.Add("P_IOS_PRODUCT_CODE", purchase_info.details[0].ios_product_code);
-                                    _cmd_rep.Parameters.Add("TICKET_UID", ticket_uid);
-                                    _cmd_rep.Parameters.Add("CLIENT_ID", purchase_info.client_id);
-                                    _cmd_rep.Parameters.Add("PACKAGE_ID", purchase_info.details[0].package_id);
-                                    _cmd_rep.ExecuteNonQuery();
-                                }
-                                finally
-                                {
-                                    _cmd_rep.Dispose();
-                                }
-
-                                try
-                                {
-
-                                    ios_receipt_info _ios_receipt_info;
-                                    _ios_receipt_info = new ios_receipt_info();
-                                    _ios_receipt_info._id = _purchase_pk_no.ToString();
-                                    _ios_receipt_info.client_id = Convert.ToString(_rd["CLIENT_ID"]);
-                                    _ios_receipt_info.password = "c7cdbd0220b54ab99af16548b0f27733";
-                                    _ios_receipt_info.package_id = purchase_info.details[0].package_id;
-                                    _ios_receipt_info.receipt = ticket;
-                                    _ios_receipt_info.ticket_uid = ticket_uid;
-
-                                    mongo_save_ios_receipt(_ios_receipt_info);
-                                }
-                                catch
-                                { };
-
-
-                                string src_no = purchase_info.session_uid;
-
-                                JsonObject json_purchase_info = new JsonObject();
-                                json_purchase_info.Add("purchase_info", purchase_info);
-                                json_purchase_info.Add("verify_receipt", _receipt);
-                                json_purchase_info.Add("receipt", purchase_info.ios_receipt_info);
-                                string proce_name = @"crt_purchase_ios";
-                                if (res_cnt == 0) { proce_name = @"p_crt_purchase_ios"; }
-
-                                string _sql_purchae = @"begin
-    "+proce_name+@"(p_paytype => :p_paytype,
+                                    string _sql_purchae = @"begin
+    " + proce_name + @"(p_paytype => :p_paytype,
                    p_client_id => :p_client_id,
                    p_device_id => :p_device_id,
                    p_package_id => :p_package_id,
@@ -737,218 +741,233 @@ namespace BSM
                     sw_version => :sw_version,
                     from_client => 'Y');
 end;";
-                                OracleCommand _cmd_p = new OracleCommand(_sql_purchae, conn);
-                                try
-                                {
-                                    _cmd_p.BindByName = true;
-                                    _cmd_p.Parameters.Add("P_PAYTYPE", "IOS");
-                                    _cmd_p.Parameters.Add("P_CLIENT_ID", purchase_info.client_id);
-                                    _cmd_p.Parameters.Add("P_DEVICE_ID", purchase_info.device_id);
-                                    _cmd_p.Parameters.Add("P_PACKAGE_ID", _r.product_id);
-                                    _cmd_p.Parameters.Add("P_IOS_ORG_TRANS_ID", _r.original_transaction_id);
-                                    _cmd_p.Parameters.Add("P_IOS_TRANS_ID", _r.transaction_id);
-                                    _cmd_p.Parameters.Add("P_PURCHASE_DATE", _r.purchase_date);
-                                    _cmd_p.Parameters.Add("P_EXPIRES_DATE", _r.expires_date_formatted);
-                                    _cmd_p.Parameters.Add("P_PK_NO", _purchase_pk_no);
-                                    _cmd_p.Parameters.Add("P_IS_INTRO_OFFER", _r.is_in_intro_offer_period);
-                                    string option = JsonConvert.ExportToString(_option);
-                                    //    _cmd_p.Parameters.Add("OPTION", option);
-                                    _cmd_p.Parameters.Add("SW_VERSION", sw_version);
-
-
-
-                                    OracleParameter _mas_no = new OracleParameter();
-                                    String _s_mas_no = "";
-                                    _mas_no.ParameterName = "P_MAS_NO";
-                                    _mas_no.OracleDbType = OracleDbType.Varchar2;
-                                    _mas_no.Direction = ParameterDirection.InputOutput;
-                                    _mas_no.Size = 64;
-                                    _mas_no.Value = _s_mas_no;
-                                    _cmd_p.Parameters.Add(_mas_no);
-                                    _cmd_p.ExecuteNonQuery();
-
-                                    if (_mas_no.Value != null && Convert.ToString(_mas_no.Value) != "null")
+                                    OracleCommand _cmd_p = new OracleCommand(_sql_purchae, conn);
+                                    try
                                     {
-                                        result.purchase_id = Convert.ToString(_mas_no.Value);
+                                        _cmd_p.BindByName = true;
+                                        _cmd_p.Parameters.Add("P_PAYTYPE", "IOS");
+                                        _cmd_p.Parameters.Add("P_CLIENT_ID", purchase_info.client_id);
+                                        _cmd_p.Parameters.Add("P_DEVICE_ID", purchase_info.device_id);
+                                        _cmd_p.Parameters.Add("P_PACKAGE_ID", _r.product_id);
+                                        _cmd_p.Parameters.Add("P_IOS_ORG_TRANS_ID", _r.original_transaction_id);
+                                        _cmd_p.Parameters.Add("P_IOS_TRANS_ID", _r.transaction_id);
+                                        _cmd_p.Parameters.Add("P_PURCHASE_DATE", _r.purchase_date);
+                                        _cmd_p.Parameters.Add("P_EXPIRES_DATE", _r.expires_date_formatted);
+                                        _cmd_p.Parameters.Add("P_PK_NO", _purchase_pk_no);
+                                        _cmd_p.Parameters.Add("P_IS_INTRO_OFFER", _r.is_in_intro_offer_period);
+                                        string option = JsonConvert.ExportToString(_option);
+                                        //    _cmd_p.Parameters.Add("OPTION", option);
+                                        _cmd_p.Parameters.Add("SW_VERSION", sw_version);
+
+
+
+                                        OracleParameter _mas_no = new OracleParameter();
+                                        String _s_mas_no = "";
+                                        _mas_no.ParameterName = "P_MAS_NO";
+                                        _mas_no.OracleDbType = OracleDbType.Varchar2;
+                                        _mas_no.Direction = ParameterDirection.InputOutput;
+                                        _mas_no.Size = 64;
+                                        _mas_no.Value = _s_mas_no;
+                                        _cmd_p.Parameters.Add(_mas_no);
+                                        _cmd_p.ExecuteNonQuery();
+
+                                        if (_mas_no.Value != null && Convert.ToString(_mas_no.Value) != "null")
+                                        {
+                                            result.purchase_id = Convert.ToString(_mas_no.Value);
+                                        }
+                                        res_cnt++;
                                     }
-                                    res_cnt++;
-                                }
-                                finally
-                                {
-                                    _cmd_p.Dispose();
-                                }
+                                    finally
+                                    {
+                                        _cmd_p.Dispose();
+                                    }
 
 
+                                };
                             };
-                        };
-                    }
-                    finally
-                    {
-                        conn.Close();
-                    }
-                     
-                    result.result_code = "BSM-00000";
-                    result.result_message = "Success";
+                        }
+                        finally
+                        {
+                            conn.Close();
+                        }
 
+                        result.result_code = "BSM-00000";
+                        result.result_message = "Success";
+
+
+                        if (!(result.purchase_id == null))
+                        {
+                            result.purchase = BSM_Info_base.get_purchase_info_by_id(purchase_info.client_id, result.purchase_id);
+                        }
+
+
+                        logger.Info(JsonConvert.ExportToString(result));
+                        return result;
+                    }
+                    else
+                    {
+                        /* result error */
+
+                        Dictionary<string, string> ios_error_code = new Dictionary<string, string>();
+                        ios_error_code.Add("21000", "The App Store could not read the JSON object you provided.");
+                        ios_error_code.Add("21002", "The data in the receipt-data property was malformed or missing.");
+                        ios_error_code.Add("21003", "The receipt could not be authenticated.");
+                        ios_error_code.Add("21004", "The shared secret you provided does not match the shared secret on file for your account.");
+                        ios_error_code.Add("21005", "The receipt server is not currently available.");
+                        ios_error_code.Add("21006", "This receipt is valid but the subscription has expired. When this status code is returned to your server, the receipt data is also decoded and returned as part of the response.Only returned for iOS 6 style transaction receipts for auto-renewable subscriptions.");
+                        ios_error_code.Add("21007", "This receipt is from the test environment, but it was sent to the production environment for verification. Send it to the test environment instead.");
+                        ios_error_code.Add("21008", "This receipt is from the production environment, but it was sent to the test environment for verification. Send it to the production environment instead.");
+
+                        result.result_code = "BSM-00309";
+                        try
+                        {
+                            result.result_message = "IOS 認證失敗-" + ios_result["status"].ToString() + ios_error_code[ios_result["status"].ToString()];
+                        }
+                        catch (Exception e)
+                        {
+                            result.result_message = "IOS 認證失敗-" + ios_result["status"].ToString();
+                        }
+                        logger.Info(JsonConvert.ExportToString(result));
+                        return result;
+                    }
+
+                }
+
+                conn.Open();
+                string sql1 = "begin :M_RESULT := BSM_CLIENT_SERVICE.CRT_PURCHASE(:M_PURCHASE_INFO,:P_RECURRENT,:P_DEVICE_ID,:OPTION,:SW_VERSION); end; ";
+
+                TBSM_PURCHASE bsm_purchase = new TBSM_PURCHASE();
+                TBSM_PURCHASE_DTLS bsm_purchase_dtls = new TBSM_PURCHASE_DTLS();
+                TBSM_RESULT bsm_result = new TBSM_RESULT();
+
+                OracleCommand cmd = new OracleCommand(sql1, conn);
+
+                bsm_purchase.SRC_NO = purchase_info.session_uid.Length > 32 ? purchase_info.session_uid.Substring(0, 32) : purchase_info.session_uid;
+                bsm_purchase.SERIAL_ID = purchase_info.client_id;
+                bsm_purchase.CVC2 = purchase_info.cvc2;
+                bsm_purchase.CARD_EXPIRY = purchase_info.card_expiry;
+                bsm_purchase.CARD_TYPE = purchase_info.card_type;
+                bsm_purchase.CARD_NO = purchase_info.card_number;
+                bsm_purchase.PAY_TYPE = purchase_info.pay_type;
+
+
+
+                bsm_purchase_dtls.Value = new TBSM_PURCHASE_DTL[purchase_info.details.Length];
+                for (int i = 0; i < purchase_info.details.Length; i++)
+                {
+                    bsm_purchase_dtls.Value[i] = new TBSM_PURCHASE_DTL();
+                    bsm_purchase_dtls.Value[i].ASSET_ID = purchase_info.details[i].item_id;
+                    bsm_purchase_dtls.Value[i].OFFER_ID = purchase_info.details[i].package_id;
+                }
+
+                bsm_purchase.DETAILS = bsm_purchase_dtls;
+
+                try
+                {
+                    cmd.BindByName = true;
+
+                    OracleParameter param1 = new OracleParameter();
+                    param1.ParameterName = "M_PURCHASE_INFO";
+                    param1.OracleDbType = OracleDbType.Object;
+                    param1.Direction = ParameterDirection.InputOutput;
+                    param1.UdtTypeName = "TBSM_PURCHASE";
+                    param1.Value = bsm_purchase;
+                    cmd.Parameters.Add(param1);
+
+                    OracleParameter param2 = new OracleParameter();
+                    param2.ParameterName = "M_RESULT";
+                    param2.OracleDbType = OracleDbType.Object;
+                    param2.Direction = ParameterDirection.InputOutput;
+                    param2.UdtTypeName = "TBSM_RESULT";
+                    cmd.Parameters.Add(param2);
+
+                    OracleParameter param3 = new OracleParameter();
+                    param3.ParameterName = "P_RECURRENT";
+                    param3.Direction = ParameterDirection.Input;
+                    if (purchase_info.recurrent != null && purchase_info.recurrent != "")
+                    {
+                        param3.Value = purchase_info.recurrent;
+                    }
+                    else
+                    {
+                        param3.Value = "";
+                    }
+
+                    cmd.Parameters.Add(param3);
+
+                    OracleParameter param4 = new OracleParameter();
+                    param4.ParameterName = "P_DEVICE_ID";
+                    param4.Direction = ParameterDirection.Input;
+                    param4.Value = device_id;
+                    cmd.Parameters.Add(param4);
+
+                    if (imsi != null && imsi != "")
+                    {
+                        _option.Add("min", imsi);
+                    }
+
+                    //  _option.Add("vendor_id", vendor_id);
+
+                    string option = JsonConvert.ExportToString(_option);
+
+                    OracleParameter param5 = new OracleParameter();
+                    param5.ParameterName = "OPTION";
+                    param5.Direction = ParameterDirection.Input;
+                    param5.Value = option;
+
+                    cmd.Parameters.Add(param5);
+
+                    OracleParameter param6 = new OracleParameter();
+                    param6.ParameterName = "SW_VERSION";
+                    param6.Direction = ParameterDirection.Input;
+                    param6.Value = software_version ?? sw_version;
+                    cmd.Parameters.Add(param6);
+
+                    cmd.ExecuteNonQuery();
+
+                    bsm_result = (TBSM_RESULT)param2.Value;
+                    bsm_purchase = (TBSM_PURCHASE)param1.Value;
+
+                    BSM_Info_base.refresh_client(purchase_info.client_id);
+
+                    if (bsm_result.result_code != "BSM-00000")
+                    {
+                        result.result_code = bsm_result.result_code;
+                        result.result_message = bsm_result.result_message;
+                        result.purchase_id = bsm_purchase.MAS_NO;
+
+                    }
+                    else
+                    {
+
+                        result.result_code = bsm_result.result_code;
+                        result.result_message = bsm_result.result_message;
+                        result.purchase_id = bsm_purchase.MAS_NO;
+                    }
 
                     if (!(result.purchase_id == null))
                     {
+
                         result.purchase = BSM_Info_base.get_purchase_info_by_id(purchase_info.client_id, result.purchase_id);
                     }
-
-
-                    logger.Info(JsonConvert.ExportToString(result));
-                    return result;
                 }
-                else
+                finally
                 {
-                    /* result error */
-
-                    Dictionary<string, string> ios_error_code = new Dictionary<string, string>();
-                    ios_error_code.Add("21000", "The App Store could not read the JSON object you provided.");
-                    ios_error_code.Add("21002", "The data in the receipt-data property was malformed or missing.");
-                    ios_error_code.Add("21003", "The receipt could not be authenticated.");
-                    ios_error_code.Add("21004", "The shared secret you provided does not match the shared secret on file for your account.");
-                    ios_error_code.Add("21005", "The receipt server is not currently available.");
-                    ios_error_code.Add("21006", "This receipt is valid but the subscription has expired. When this status code is returned to your server, the receipt data is also decoded and returned as part of the response.Only returned for iOS 6 style transaction receipts for auto-renewable subscriptions.");
-                    ios_error_code.Add("21007", "This receipt is from the test environment, but it was sent to the production environment for verification. Send it to the test environment instead.");
-                    ios_error_code.Add("21008", "This receipt is from the production environment, but it was sent to the test environment for verification. Send it to the production environment instead.");
-
-                    result.result_code = "BSM-00309";
-                    result.result_message = "IOS 認證失敗-" + ios_result["status"].ToString() + ios_error_code[ios_result["status"].ToString()];
-                    logger.Info(JsonConvert.ExportToString(result));
-                    return result;
+                    conn.Close();
+                    cmd.Dispose();
                 }
 
+                logger.Info(JsonConvert.ExportToString(result));
+
+                return result;
             }
-
-            conn.Open();
-            string sql1 = "begin :M_RESULT := BSM_CLIENT_SERVICE.CRT_PURCHASE(:M_PURCHASE_INFO,:P_RECURRENT,:P_DEVICE_ID,:OPTION,:SW_VERSION); end; ";
-
-            TBSM_PURCHASE bsm_purchase = new TBSM_PURCHASE();
-            TBSM_PURCHASE_DTLS bsm_purchase_dtls = new TBSM_PURCHASE_DTLS();
-            TBSM_RESULT bsm_result = new TBSM_RESULT();
-
-            OracleCommand cmd = new OracleCommand(sql1, conn);
-
-            bsm_purchase.SRC_NO = purchase_info.session_uid.Length > 32 ? purchase_info.session_uid.Substring(0, 32) : purchase_info.session_uid;
-            bsm_purchase.SERIAL_ID = purchase_info.client_id;
-            bsm_purchase.CVC2 = purchase_info.cvc2;
-            bsm_purchase.CARD_EXPIRY = purchase_info.card_expiry;
-            bsm_purchase.CARD_TYPE = purchase_info.card_type;
-            bsm_purchase.CARD_NO = purchase_info.card_number;
-            bsm_purchase.PAY_TYPE = purchase_info.pay_type;
-
-
-
-            bsm_purchase_dtls.Value = new TBSM_PURCHASE_DTL[purchase_info.details.Length];
-            for (int i = 0; i < purchase_info.details.Length; i++)
+            catch (Exception e)
             {
-                bsm_purchase_dtls.Value[i] = new TBSM_PURCHASE_DTL();
-                bsm_purchase_dtls.Value[i].ASSET_ID = purchase_info.details[i].item_id;
-                bsm_purchase_dtls.Value[i].OFFER_ID = purchase_info.details[i].package_id;
-            }
-
-            bsm_purchase.DETAILS = bsm_purchase_dtls;
-
-            try
-            {
-                cmd.BindByName = true;
-
-                OracleParameter param1 = new OracleParameter();
-                param1.ParameterName = "M_PURCHASE_INFO";
-                param1.OracleDbType = OracleDbType.Object;
-                param1.Direction = ParameterDirection.InputOutput;
-                param1.UdtTypeName = "TBSM_PURCHASE";
-                param1.Value = bsm_purchase;
-                cmd.Parameters.Add(param1);
-
-                OracleParameter param2 = new OracleParameter();
-                param2.ParameterName = "M_RESULT";
-                param2.OracleDbType = OracleDbType.Object;
-                param2.Direction = ParameterDirection.InputOutput;
-                param2.UdtTypeName = "TBSM_RESULT";
-                cmd.Parameters.Add(param2);
-
-                OracleParameter param3 = new OracleParameter();
-                param3.ParameterName = "P_RECURRENT";
-                param3.Direction = ParameterDirection.Input;
-                if (purchase_info.recurrent != null && purchase_info.recurrent != "")
-                {
-                    param3.Value = purchase_info.recurrent;
+                logger.Info(JsonConvert.ExportToString(e.Message));
+                result.result_message = e.Message;
+                result.result_code="BSM-00801";
+                return result;
                 }
-                else
-                {
-                    param3.Value = "";
-                }
-
-                cmd.Parameters.Add(param3);
-
-                OracleParameter param4 = new OracleParameter();
-                param4.ParameterName = "P_DEVICE_ID";
-                param4.Direction = ParameterDirection.Input;
-                param4.Value = device_id;
-                cmd.Parameters.Add(param4);
-
-                if (imsi != null && imsi != "")
-                {
-                    _option.Add("min", imsi);
-                }
-
-              //  _option.Add("vendor_id", vendor_id);
-
-                string option = JsonConvert.ExportToString(_option);
-
-                OracleParameter param5 = new OracleParameter();
-                param5.ParameterName = "OPTION";
-                param5.Direction = ParameterDirection.Input;
-                param5.Value = option;
-
-                cmd.Parameters.Add(param5);
-
-                OracleParameter param6 = new OracleParameter();
-                param6.ParameterName = "SW_VERSION";
-                param6.Direction = ParameterDirection.Input;
-                param6.Value = software_version??sw_version;
-                cmd.Parameters.Add(param6);
-
-                cmd.ExecuteNonQuery();
-
-                bsm_result = (TBSM_RESULT)param2.Value;
-                bsm_purchase = (TBSM_PURCHASE)param1.Value;
-
-                BSM_Info_base.refresh_client(purchase_info.client_id);
-
-                if (bsm_result.result_code != "BSM-00000")
-                {
-                    result.result_code = bsm_result.result_code;
-                    result.result_message = bsm_result.result_message;
-                    result.purchase_id = bsm_purchase.MAS_NO;
-
-                }
-                else
-                {
-
-                    result.result_code = bsm_result.result_code;
-                    result.result_message = bsm_result.result_message;
-                    result.purchase_id = bsm_purchase.MAS_NO;
-                }
-
-                if (!(result.purchase_id == null))
-                {
-
-                    result.purchase = BSM_Info_base.get_purchase_info_by_id(purchase_info.client_id, result.purchase_id);
-                }
-            }
-            finally
-            {
-                conn.Close();
-                cmd.Dispose();
-            }
-
-            logger.Info(JsonConvert.ExportToString(result));
-
-            return result;
 
         }
 
@@ -1254,6 +1273,10 @@ end;";
             {
                 jsontstr = jsontstr.Substring(0, card_pos) + jsontstr.Substring(card_pos + 47);
             }
+            if (jsontstr.ToUpper().IndexOf("httpRequest") > 0)
+            {
+                jsontstr = "";
+            }
             logger.Info(jsontstr);
             base.ProcessRequest(context);
         }
@@ -1529,7 +1552,7 @@ end;";
                 }
 
 
-                logger.Info(_result);
+              // logger.Info(_result);
                 return _result;
             }
             catch (Exception e)
