@@ -23,8 +23,8 @@ using log4net.Config;
 using System.Web.Security;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using MongoDB.Driver.Builders;
-using MongoDB.Driver.GridFS;
+//using MongoDB.Driver.Builders;
+//using MongoDB.Driver.GridFS;
 using MongoDB.Driver.Linq;
 
 
@@ -1448,11 +1448,11 @@ end;";
         public void mongo_save_ios_receipt(ios_receipt_info _ios_receipt_info)
         {
             MongoClient _MongoClient = new MongoClient(MongoDBConnectString);
-            MongoServer _MongoServer = _MongoClient.GetServer();
-            MongoDatabase _MongoDB_ClientInfo = _MongoServer.GetDatabase(MongoDB);
-            MongoCollection<ios_receipt_info> _c_ios_receipts = _MongoDB_ClientInfo.GetCollection<ios_receipt_info>("ios_receipts");
+            //MongoServer _MongoServer = _MongoClient.GetServer();
+            IMongoDatabase _MongoDB_ClientInfo = _MongoClient.GetDatabase(MongoDB);
+            IMongoCollection<ios_receipt_info> _c_ios_receipts = _MongoDB_ClientInfo.GetCollection<ios_receipt_info>("ios_receipts");
 
-            _c_ios_receipts.Save(_ios_receipt_info);
+            _c_ios_receipts.ReplaceOne(doc=>doc._id==_ios_receipt_info._id, _ios_receipt_info,new UpdateOptions() { IsUpsert = true });
 
         }
 
@@ -1475,13 +1475,15 @@ end;";
         {
             IOS_ReceiptInfo _receiptinfo;
             MongoClient _MongoClient = new MongoClient(MongoDBConnectString);
-            MongoServer _MongoServer = _MongoClient.GetServer();
-            MongoDatabase _MongoDB_ClientInfo = _MongoServer.GetDatabase(MongoDB);
-            MongoCollection<IOS_ReceiptInfo> _c_ios_receiptinfos = _MongoDB_ClientInfo.GetCollection<IOS_ReceiptInfo>("ios_receiptinfos");
+            //MongoServer _MongoServer = _MongoClient.GetServer();
+            IMongoDatabase _MongoDB_ClientInfo = _MongoClient.GetDatabase(MongoDB);
+            IMongoCollection<IOS_ReceiptInfo> _c_ios_receiptinfos = _MongoDB_ClientInfo.GetCollection<IOS_ReceiptInfo>("ios_receiptinfos");
             try
             {
-                _receiptinfo = (IOS_ReceiptInfo)_c_ios_receiptinfos.FindOne(Query.EQ("_id", p_receiptinfo._id));
-                if (_receiptinfo == null) { _c_ios_receiptinfos.Save(p_receiptinfo); return true; }
+                try { 
+                _receiptinfo = (IOS_ReceiptInfo)_c_ios_receiptinfos.Find(doc => doc._id == p_receiptinfo._id).First();
+                }catch(Exception e) { _receiptinfo = null; }
+                if (_receiptinfo == null) { _c_ios_receiptinfos.ReplaceOne(doc=>doc._id==p_receiptinfo._id, p_receiptinfo, new UpdateOptions() { IsUpsert = true }); return true; }
                 else
                 {
                     return true;
@@ -1490,20 +1492,23 @@ end;";
             catch
             { return false; }
 
-            _c_ios_receiptinfos.Save(p_receiptinfo);
+            _c_ios_receiptinfos.ReplaceOne(doc=>doc._id== p_receiptinfo._id,p_receiptinfo, new UpdateOptions() { IsUpsert = true });
         }
 
         public ios_receipt_info mongo_load_ios_receipt(int order_pk_no)
         {
             ios_receipt_info _ios_receipt_info;
             MongoClient _MongoClient = new MongoClient(MongoDBConnectString);
-            MongoServer _MongoServer = _MongoClient.GetServer();
-            MongoDatabase _MongoDB_ClientInfo = _MongoServer.GetDatabase(MongoDB);
-            MongoCollection<ios_receipt_info> _c_ios_receipts = _MongoDB_ClientInfo.GetCollection<ios_receipt_info>("ios_receipts");
+         //   MongoServer _MongoServer = _MongoClient.GetServer();
+            IMongoDatabase _MongoDB_ClientInfo = _MongoClient.GetDatabase(MongoDB);
+            IMongoCollection<ios_receipt_info> _c_ios_receipts = _MongoDB_ClientInfo.GetCollection<ios_receipt_info>("ios_receipts");
             try
             {
-                _ios_receipt_info = (ios_receipt_info)_c_ios_receipts.FindOne(Query.EQ("_id", new BsonString(order_pk_no.ToString())));
-                return _ios_receipt_info;
+                try
+                {
+                    _ios_receipt_info = (ios_receipt_info)_c_ios_receipts.Find(doc => doc._id == order_pk_no.ToString()).First();
+                }catch(Exception e) { _ios_receipt_info = null; }
+                    return _ios_receipt_info;
             }
             catch
             { return null; }

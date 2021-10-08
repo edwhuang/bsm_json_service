@@ -21,8 +21,8 @@ using log4net;
 using log4net.Config;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using MongoDB.Driver.Builders;
-using MongoDB.Driver.GridFS;
+//using MongoDB.Driver.Builders;
+//using MongoDB.Driver.GridFS;
 using MongoDB.Driver.Linq;
 using System.Web.Security;
 
@@ -67,8 +67,8 @@ namespace BSM
 
         private string _MongoDbconnectionString;
         private MongoClient _Mongoclient;
-        private MongoServer _MongoServer;
-        private MongoDatabase _MongoDB;
+        //private MongoServer _MongoServer;
+        private IMongoDatabase _MongoDB;
 
         private string MongoDBConnectString;
         private string MongoDBConnectString_package;
@@ -1103,8 +1103,11 @@ namespace BSM
             cht_coupon_db _cache;
 
             var _collection_c = _MongoDB.GetCollection<cht_coupon_db>("catche_cht_coupon");
-            var _qc = Query<cht_coupon_db>.EQ(e => e.Id, device_id);
-            _cache = _collection_c.FindOne(_qc);
+            // var _qc = Query<cht_coupon_db>.EQ(e => e.Id, device_id);
+            try
+            {
+                _cache = _collection_c.Find(doc => doc.Id == device_id).First();
+            }catch(Exception e) { _cache = null; }
 
 
             conn.Open();
@@ -1239,7 +1242,7 @@ namespace BSM
                                 _cache.session_id = _rd_2.GetString(4);
                             }
                             _rd_2.Dispose();
-                            _collection_c.Save(_cache);
+                            _collection_c.ReplaceOne(doc=>doc.Id==_cache.Id,_cache, new UpdateOptions() { IsUpsert = true });
                             _cache.status = 0;
                         }
                     }
@@ -1333,7 +1336,7 @@ namespace BSM
                         _cache.session_id = _rd_2.GetString(4);
                     }
                     _rd_2.Dispose();
-                    _collection_c.Save(_cache);
+                    _collection_c.ReplaceOne(doc=>doc.Id==_cache.Id,_cache, new UpdateOptions() { IsUpsert = true });
                 }
 
             }

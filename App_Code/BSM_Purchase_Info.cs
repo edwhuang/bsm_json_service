@@ -23,8 +23,8 @@ namespace BSM_Info
 
     using MongoDB.Bson;
     using MongoDB.Driver;
-    using MongoDB.Driver.Builders;
-    using MongoDB.Driver.GridFS;
+   // using MongoDB.Driver.Builders;
+   // using MongoDB.Driver.GridFS;
     using MongoDB.Driver.Linq;
 
     using AutoMapper;
@@ -741,11 +741,11 @@ namespace BSM_Info
         private string _MongoDbconnectionString;
         private string _MongoDbconnectionString_package;
         private MongoClient _Mongoclient_package;
-        private MongoServer _MongoServer_package;
+       // private MongoServer _MongoServer_package;
         private MongoClient _Mongoclient;
-        private MongoServer _MongoServer;
-        private MongoDatabase _MongoDB;
-        private MongoDatabase _MongoDB_package;
+      //  private MongoServer _MongoServer;
+        private IMongoDatabase _MongoDB;
+        private IMongoDatabase _MongoDB_package;
         private String MongoDB_Database;
 
         private void connectDB()
@@ -834,25 +834,25 @@ namespace BSM_Info
             {
                 if (_MongoDbconnectionString != null && _MongoDbconnectionString !="" ){
                 _Mongoclient = new MongoClient(_MongoDbconnectionString);
-                _MongoServer = _Mongoclient.GetServer();
-                _MongoDB = _MongoServer.GetDatabase(MongoDB_Database+"ClientInfo");
+                //_MongoServer = _Mongoclient.GetServer();
+                _MongoDB = _Mongoclient.GetDatabase(MongoDB_Database+"ClientInfo");
                 }
                 else
                 {
                     _Mongoclient = null;
-                    _MongoServer = null;
+                   // _MongoServer = null;
                     _MongoDB = null;
                 }
 
                 if (_MongoDbconnectionString_package != null && _MongoDbconnectionString_package !="")
                 { 
                 _Mongoclient_package = new MongoClient(_MongoDbconnectionString_package);
-                _MongoServer_package = _Mongoclient_package.GetServer();
-                _MongoDB_package = _MongoServer_package.GetDatabase(MongoDB_Database + "PackageInfoDB");
+                //_MongoServer_package = _Mongoclient_package.GetServer();
+                _MongoDB_package = _Mongoclient_package.GetDatabase(MongoDB_Database + "PackageInfoDB");
                 }else
                 {
                     _Mongoclient_package = null;
-                    _MongoServer_package = null;
+                    //_MongoServer_package = null;
                     _MongoDB_package = null;
                 }
                 
@@ -1661,7 +1661,7 @@ order by package_type,system_type,package_status desc,end_date desc";
                 OracleDataReader rd = _cmd.ExecuteReader();
                 List<package_sg_info> all_package_sg_info = DataReaderToObjectList<package_sg_info>(rd).ToList();
                 try{
-                _collection.InsertBatch(all_package_sg_info);
+                _collection.InsertMany(all_package_sg_info);
                 }catch(Exception e)
                 {
                 }
@@ -1724,7 +1724,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
 
                 if (_result.Count() >0)
 
-                _collection.InsertBatch(_result);
+                _collection.InsertMany(_result);
             }
             else
             {
@@ -1842,7 +1842,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
                 try
                 {
 
-                    package_collection.InsertBatch(v_result);
+                    package_collection.InsertMany(v_result);
                 }
                 catch (Exception e)
                 {
@@ -1864,11 +1864,11 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             
             try
             {
-                acc_info= (account_info)account_collection.FindOne(Query.EQ("_id", new BsonString(client_id)));
+                acc_info = (account_info)account_collection.Find(doc => doc._id == client_id).First();
             }
             catch(Exception e)
             {
-                return null;
+                acc_info = null;
             }
             if (acc_info != null)
             {
@@ -1910,7 +1910,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         public string refresh_client(string client_id)
         {
             var account_collection = _MongoDB.GetCollection<account_info>("account_info");
-            account_collection.Remove(Query.EQ("_id", new BsonString(client_id)));
+            account_collection.DeleteOne(doc => doc._id == client_id);
        //     get_account_info(client_id,null);
             return "Sucess";
            
@@ -2095,7 +2095,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
 
                     try
                     {
-                        sg_p = (software_packages)sg_package_collection.FindOne(Query.EQ("_id", new BsonString(system_type + "+" + sw_group + "+" + group_id)));
+                        sg_p = (software_packages)sg_package_collection.Find(doc=>doc._id==system_type + "+" + sw_group + "+" + group_id);
                     }
                     catch (Exception e)
                     {
@@ -2144,7 +2144,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
                     sg_p._id = system_type + "+" + sw_group + "+" + group_id;
                     sg_p.packages = all_packages;
                     var sg_package_collection = _MongoDB_package.GetCollection<software_packages>("software_packages");
-                    sg_package_collection.Save(sg_p);
+                    sg_package_collection.ReplaceOne(doc=>doc._id==sg_p._id,sg_p, new UpdateOptions() { IsUpsert = true });
                 }
 
                 if (cal_type == "T")
@@ -2269,7 +2269,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
                 {
                     package = (JsonObject)JsonConvert.Import(JsonConvert.ExportToString(item));
 
-                    List<bsm_package_special> specials = (from c in _all_special where c.package_id == item.package_id && (DateTime.Compare(c.start_date, DateTime.Now) <= 0 && DateTime.Compare(DateTime.Now, c.end_date) <= 0) && (c.proj_no == "" || c.proj_no == sw_version.Substring(0,7)) select c).ToList();
+                    List<bsm_package_special> specials = (from c in _all_special where c.package_id == item.package_id && (DateTime.Compare(c.start_date, DateTime.Now) <= 0 && DateTime.Compare(DateTime.Now, c.end_date) <= 0) && (c.proj_no == "" || c.proj_no == sw_version.Substring(0,7)) orderby c.proj_no  select c).ToList();
                     foreach (var special in specials)
                     {
                         JsonObject _option = special.Option;
@@ -2302,7 +2302,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         public List<bsm_package_special> get_package_special()
         {
             var _collection = _MongoDB_package.GetCollection<bsm_package_special>("bsm_package_special");
-            List<bsm_package_special> _result = _collection.AsQueryable().ToList();
+            List<bsm_package_special> _result = _collection.Find(_ => true).ToList();
             return _result;
         }
         public void post_package_special()
@@ -2330,7 +2330,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
                     var a = "";
                     a = Convert.ToString(rd["PC_OPTION"]);
                 }
-                _collection.Save(_data);
+                _collection.ReplaceOne(doc=>doc._id==_data._id,_data, new UpdateOptions() { IsUpsert = true });
             };
         }
         public class bsm_message
@@ -2347,8 +2347,10 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             string software_group = (sw_version != null )?sw_version.Substring(0, 7):"";
     
             var bsm_message_collection = _MongoDB_package.GetCollection<bsm_message>("bsm_messages");
-            var query = Query.EQ("_id",message_type);
-            bsm_message re= bsm_message_collection.FindOne(query);
+            // var query = Query.EQ("_id",message_type);
+            bsm_message re;
+            try { re = bsm_message_collection.Find(doc => doc._id == message_type).First(); }
+            catch(Exception e) { re = null; }
             if (re != null)
             {
                 _result = re.message;
@@ -2379,7 +2381,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
                     msg.message = _result;
                     msg.message_type = message_type;
                     msg._id = message_type;
-                    bsm_message_collection.Save(msg);
+                    bsm_message_collection.ReplaceOne(doc=>doc._id==msg._id, msg,new UpdateOptions() { IsUpsert = true });
                 }
                 finally
                 {
@@ -3138,7 +3140,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
 
         public void refresh()
         {
-            if (_MongoDB_package != null) _MongoDB_package.Drop();
+            if (_MongoDB_package != null) _Mongoclient_package.DropDatabase(MongoDB_Database + "PackageInfoDB");;
             get_message("COUPON",null);
             get_message("CREDIT",null);
             get_message("NULL",null);
@@ -3181,8 +3183,8 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
     public class BSM_CLIENT_SET
     {
         private MongoClient _Mongoclient;
-        private MongoServer _MongoServer;
-        private MongoDatabase _MongoDB;
+      //  private MongoServer _MongoServer;
+        private IMongoDatabase _MongoDB;
 
 
 
@@ -3194,13 +3196,13 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             if (MongoDbconnectionString != null && MongoDbconnectionString != "")
             {
                 _Mongoclient = new MongoClient(MongoDbconnectionString);
-                _MongoServer = _Mongoclient.GetServer();
-                _MongoDB = _MongoServer.GetDatabase(MongoDB_Database + "ClientInfo");
+                //_MongoServer = _Mongoclient.GetServer();
+                _MongoDB = _Mongoclient.GetDatabase(MongoDB_Database + "ClientInfo");
             }
             else
             {
                 _Mongoclient = null;
-                _MongoServer = null;
+                //_MongoServer = null;
                 _MongoDB = null;
             }
             
@@ -3212,10 +3214,14 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         {
             string _result="";
             string _software_goroup = software_ver.Substring(0, 7);
-            MongoCollection _Mogodb_client_list = _MongoDB.GetCollection("client_values");
+            IMongoCollection< client_value> _Mogodb_client_list = _MongoDB.GetCollection<client_value>("client_values");
 
-            var q = Query.And(Query.EQ("value_name", value_name), Query.EQ("software_group", _software_goroup));
-            client_value _result_v = _Mogodb_client_list.FindOneAs<client_value>(q);
+            // var q = Query.And(Query.EQ("value_name", value_name), Query.EQ("software_group", _software_goroup));
+            client_value _result_v;
+            try
+            {
+                _result_v = _Mogodb_client_list.Find(doc => doc.value_name == value_name && doc.software_group == _software_goroup).First();
+            }catch(Exception e) { _result_v = null; }
             if (_result_v != null)
             {
                 _result = _result_v.value;
