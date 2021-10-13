@@ -23,8 +23,8 @@ namespace BSM_Info
 
     using MongoDB.Bson;
     using MongoDB.Driver;
-    using MongoDB.Driver.Builders;
-    using MongoDB.Driver.GridFS;
+   // using MongoDB.Driver.Builders;
+   // using MongoDB.Driver.GridFS;
     using MongoDB.Driver.Linq;
 
     using AutoMapper;
@@ -476,6 +476,8 @@ namespace BSM_Info
         public string recurrent; //是否可Recurrent
         public string next_pay_date; //下次購款日
         public string current_recurrent_status;  //目前recurrent 狀態
+        public string current_recurrent_package; //目前recurrent 狀態
+        
         public string credits_remind; //使用點數提醒
         public string[] pay_method_list; //付款方式
         public string system_type;
@@ -566,6 +568,16 @@ namespace BSM_Info
         /// </summary>
         public string remark;
 
+    }
+
+    public class bsm_package_special
+    {
+        public string _id;
+        public string package_id;
+        public string proj_no;
+        public DateTime start_date;
+        public DateTime end_date;
+        public JsonObject Option;
     }
 
     /// <summary>
@@ -729,11 +741,11 @@ namespace BSM_Info
         private string _MongoDbconnectionString;
         private string _MongoDbconnectionString_package;
         private MongoClient _Mongoclient_package;
-        private MongoServer _MongoServer_package;
+       // private MongoServer _MongoServer_package;
         private MongoClient _Mongoclient;
-        private MongoServer _MongoServer;
-        private MongoDatabase _MongoDB;
-        private MongoDatabase _MongoDB_package;
+      //  private MongoServer _MongoServer;
+        private IMongoDatabase _MongoDB;
+        private IMongoDatabase _MongoDB_package;
         private String MongoDB_Database;
 
         private void connectDB()
@@ -813,6 +825,7 @@ namespace BSM_Info
             conn = new OracleConnection();
             conn.ConnectionString = connString;
             _MongoDbconnectionString = MongodbConnectString;
+            this.MongoDB_Database = MongoDB_Database;
             _MongoDbconnectionString_package = MongodbConnectString_package;
 
             //
@@ -822,25 +835,25 @@ namespace BSM_Info
             {
                 if (_MongoDbconnectionString != null && _MongoDbconnectionString !="" ){
                 _Mongoclient = new MongoClient(_MongoDbconnectionString);
-                _MongoServer = _Mongoclient.GetServer();
-                _MongoDB = _MongoServer.GetDatabase(MongoDB_Database+"ClientInfo");
+                //_MongoServer = _Mongoclient.GetServer();
+                _MongoDB = _Mongoclient.GetDatabase(MongoDB_Database+"ClientInfo");
                 }
                 else
                 {
                     _Mongoclient = null;
-                    _MongoServer = null;
+                   // _MongoServer = null;
                     _MongoDB = null;
                 }
 
                 if (_MongoDbconnectionString_package != null && _MongoDbconnectionString_package !="")
                 { 
                 _Mongoclient_package = new MongoClient(_MongoDbconnectionString_package);
-                _MongoServer_package = _Mongoclient_package.GetServer();
-                _MongoDB_package = _MongoServer_package.GetDatabase(MongoDB_Database + "PackageInfoDB");
+                //_MongoServer_package = _Mongoclient_package.GetServer();
+                _MongoDB_package = _Mongoclient_package.GetDatabase(MongoDB_Database + "PackageInfoDB");
                 }else
                 {
                     _Mongoclient_package = null;
-                    _MongoServer_package = null;
+                    //_MongoServer_package = null;
                     _MongoDB_package = null;
                 }
                 
@@ -953,11 +966,11 @@ namespace BSM_Info
 
             account_info acc_info = get_account_info(client_id, device_id);
 
-            if (acc_info != null) _result= acc_info.services;
+            if (acc_info != null && acc_info.services != null) _result = acc_info.services;
             else
                 _result= get_catalog_info_oracle(client_id, device_id, sw_version);
 
-            _result = (from _c in _result where _c.device_id == "" || _c.device_id == device_id select _c).ToList();
+           // _result = (from _c in _result where _c.device_id == "" || _c.device_id == device_id select _c).ToList();
             return _result;
         }
 
@@ -974,15 +987,13 @@ namespace BSM_Info
 
                 _sql = @"with cte as (
 Select case when cal_type = 'T' then
-              t.package_name 
+              nvl(t.package_name,t2.package_cat1) 
             else
               t2.package_cat1
             end package_cat1,
-        
-         case when  min(t.start_date) is null 
+                 case when  min(t.start_date) is null 
               then max(t2.package_start_date_desc)
             else to_char(trunc(min(t.start_date)),'YYYY/MM/DD') end start_date,
-
         case when min(t.end_date) is null
             then '未啟用'
             else
@@ -1007,36 +1018,41 @@ Select case when cal_type = 'T' then
               end
           end package_status_flg,
         max(t.pk_no) detail_pk_no,
-        t2.package_cat_id1,
+              t2.package_cat_id1
+           package_cat_id1,
         t.device_id
-         from bsm_client_details t,bsm_package_mas t2
+         from bsm_client_details t,bsm_package_mas t2,bsm_purchase_mas t4
  where t.status_flg = 'P'
-   and t.package_id in (Select t2.package_id from bsm_package_mas t2 where system_type <> 'CLIENT_ACTIVED')
+   and t.package_id in (Select t2.package_id from bsm_package_mas t2 where system_type not in ('CLIENT_ACTIVED','SYSTEM','FREE'))
    and t.package_id not in ('CHG003','CH4G06')  
    and t2.package_id= t.package_id
-   and t2.acl_period is null
+   and t2.acl_period is NULL
+    and ((t2.cal_type ='T' and t.end_date >=sysdate) or (t2.cal_type <> 'T')) 
+   and t.src_pk_no=t4.pk_no (+)
    and t.mac_address=:CLIENT_ID
- group by
-          case when cal_type = 'T' then
-              t.package_name 
-            else
+ group by case
+          when cal_type = 'T' then
+              nvl(t.package_name,t2.package_cat1) 
+           else
               t2.package_cat1
-            end ,
+            end  ,
           t2.cal_type,
           t2.package_cat1,
-          t2.package_cat_id1,
+                              t2.package_cat_id1
+          ,
           t.item_id,
           t.device_id
           )
 select cte.package_cat1,t3.supply_name||t3.package_name package_name,cte.start_date,cte.end_date,PACKAGE_DES_HTML,PRICE_DES,package_status,logo,t2.package_id,package_type,system_type,
-decode(BSM_RECURRENT_UTIL.check_recurrent(cte.package_cat_id1, :CLIENT_ID,:DEVICE_ID),'Y','R','O') recurrent,
-decode(BSM_RECURRENT_UTIL.check_recurrent(cte.package_cat_id1, :CLIENT_ID,:DEVICE_ID),'Y',to_char(BSM_RECURRENT_UTIL.get_service_end_date(cte.package_cat_id1, :CLIENT_ID),'YYYY/MM/DD'),'無') next_pay_date,
+decode(BSM_RECURRENT_UTIL.check_recurrent_2(cte.package_cat_id1, :CLIENT_ID,:DEVICE_ID),'Y','R','O') recurrent,
+decode(BSM_RECURRENT_UTIL.check_recurrent_2(cte.package_cat_id1, :CLIENT_ID,:DEVICE_ID),'Y',BSM_RECURRENT_UTIL.get_next_pay_date(cte.package_cat_id1, :CLIENT_ID),'無') next_pay_date,
 cte.package_cat_id1,
 cte.package_status_flg,
 cte.device_id
 from cte,bsm_package_mas t2,bsm_client_details t3
 where cte.detail_pk_no =t3.pk_no 
-and t3.package_id=t2.package_id";
+and t3.package_id=t2.package_id
+order by package_type,system_type,package_status desc,end_date desc";
 
                 OracleCommand _cmd = new OracleCommand(_sql, conn);
                 _cmd.BindByName = true;
@@ -1107,13 +1123,14 @@ and t3.package_id=t2.package_id";
             if (src_no != null) _result = (from _p in _result where _p.src_no == src_no select _p).ToList();
 
 
-            _result = (from _p in _result where _p.device_id == "" || _p.device_id == device_id select _p).ToList();
+            _result = (from _p in _result orderby  _p.purchase_date descending,_p.purchase_id descending  where _p.device_id == "" || _p.device_id == device_id select _p).ToList();
             foreach (var a in _result)
             {
                 if (a.pay_type != "信用卡" && a.pay_type != "REMIT" && a.pay_type != "ATM")
                 {
                     a.price_description = "";
                     a.amount_description = "";
+                   
                   
                 }
             }
@@ -1138,7 +1155,7 @@ and t3.package_id=t2.package_id";
        nvl(c.package_name, d.description)||
        (select ' '||promo_title from promotion_prog_item x where x.promo_prog_id=a.promo_prog_id and x.discount_package_id=e.package_id) package_name,
        to_char(a.purchase_date, 'YYYY/MM/DD') purchase_date,
-       d.price_des,
+       nvl(e.price_desc,d.price_des) price_des,
        decode(a.pay_type,
               'REMIT',
               '便利商店',
@@ -1150,6 +1167,8 @@ and t3.package_id=t2.package_id";
               '信用卡',
               '點數',
               '點數',
+              'iab_tv',
+              'Google Play',
               a.pay_type) pay_type,
        '************' || substr(a.card_no, 13, 4) card_no,
        a.mas_no purchase_id,
@@ -1251,7 +1270,7 @@ and t3.package_id=t2.package_id";
    and a.serial_id = :MAC_ADDRESS
    and a.trans_to is null
    and a.show_flg <> 'N'
- Order by to_char(a.purchase_date, 'YYYY/MM/DD') desc, a.mas_no desc,d.cal_type
+ Order by to_char(nvl(a.purchase_date,a.mas_date), 'YYYY/MM/DD') desc, a.mas_no desc,d.cal_type,e.price desc
 ";
 
 
@@ -1507,14 +1526,23 @@ and t3.package_id=t2.package_id";
                         _cmd2.BindByName = true;
                         _cmd2.Parameters.Add("mac_address", client_id);
                         _cmd2.Parameters.Add("package_id", v_purchase_info.package_id);
+                        
                         OracleDataReader v_Data_Reader2 = _cmd2.ExecuteReader();
-                        v_purchase_info.use_status = "N";
-                        while (v_Data_Reader2.Read()) v_purchase_info.use_status = Convert.ToString(v_Data_Reader2["PACKAGE_STATUS"]);
-                        v_purchase_info.purchase_datetime = v_Data_Reader.GetString(11);
+                        try
+                        {
+
+                            v_purchase_info.use_status = "N";
+                            while (v_Data_Reader2.Read()) v_purchase_info.use_status = Convert.ToString(v_Data_Reader2["PACKAGE_STATUS"]);
+                            v_purchase_info.purchase_datetime = v_Data_Reader.GetString(11);
 
 
-                        v_result.Add(v_purchase_info);
-                        _i++;
+                            v_result.Add(v_purchase_info);
+                            _i++;
+                        }
+                        finally
+                        {
+                            v_Data_Reader2.Dispose();
+                        }
 
                     }
                 }
@@ -1540,12 +1568,12 @@ and t3.package_id=t2.package_id";
         /// <param name="device_id"></param>
         /// <param name="version"></param>
         /// <returns></returns>
-        public List<group> get_group_package_info(string token, string client_id, string device_id,string imsi,string sw_version)
+        public List<JsonObject> get_group_package_info(string token, string client_id, string device_id,string imsi,string sw_version)
         {
             process_auto_coupon(client_id, device_id, sw_version);
 
-            List<group> _result = new List<group>();
-            group _g;
+            List<JsonObject> _result = new List<JsonObject>();
+            JsonObject _g;
             string _sw_group = "";
 
            
@@ -1577,6 +1605,9 @@ and t3.package_id=t2.package_id";
                 }
             }
             List<package_info> _package_info_list = this.get_package_info(client_id, "BUY", 0, device_id,null,imsi,sw_version,"N","P");
+            JsonArray _pk_a2 = this.get_package_info_a(client_id, "BUY", 0, device_id, null, imsi, sw_version, "N", "P");
+            List<JsonObject> _pk_a = new List<JsonObject>();
+            foreach (JsonObject x in _pk_a2) { _pk_a.Add(x); }
 
 
             var _package_group_list = from _package_info in _package_info_list
@@ -1586,12 +1617,12 @@ and t3.package_id=t2.package_id";
 
             foreach ( var _pg in _package_group_list)
             {
-                 _g = new group();
-                 _g.group_id = _pg.group_id;
+                 _g = new JsonObject();
+                 _g.Add("group_id",_pg.group_id);
 
-                 _g.title = _pg.title;
-                 _g.group_description = _pg.group_description;
-                 _g.packages = (from _package_info in _package_info_list where _package_info.catalog_id == _g.group_id select _package_info).ToList<package_info>();
+                 _g.Add("title", _pg.title);
+                 _g.Add("group_description", _pg.group_description);
+                 _g.Add("packages", (from _package_info in _pk_a where _package_info["catalog_id"].ToString() == _pg.group_id select _package_info).ToList<JsonObject>());
                 _result.Add(_g);
             };
        
@@ -1626,12 +1657,13 @@ and t3.package_id=t2.package_id";
             }
             if (d_list.Count() == 0)
             {
+                this.connectDB();
                 OracleCommand _cmd = new OracleCommand(@"Select software_group||'+'||package_id ""_ID"",package_id,software_group,version,version_end from bsm_package_sg where status_flg='P'", conn);
 
                 OracleDataReader rd = _cmd.ExecuteReader();
                 List<package_sg_info> all_package_sg_info = DataReaderToObjectList<package_sg_info>(rd).ToList();
                 try{
-                _collection.InsertBatch(all_package_sg_info);
+                _collection.InsertMany(all_package_sg_info);
                 }catch(Exception e)
                 {
                 }
@@ -1694,7 +1726,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
 
                 if (_result.Count() >0)
 
-                _collection.InsertBatch(_result);
+                _collection.InsertMany(_result);
             }
             else
             {
@@ -1812,7 +1844,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
                 try
                 {
 
-                    package_collection.InsertBatch(v_result);
+                    package_collection.InsertMany(v_result);
                 }
                 catch (Exception e)
                 {
@@ -1834,16 +1866,29 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             
             try
             {
-                acc_info= (account_info)account_collection.FindOne(Query.EQ("_id", new BsonString(client_id)));
+                acc_info = (account_info)account_collection.Find(doc => doc._id == client_id).First();
             }
             catch(Exception e)
             {
-                return null;
+                acc_info = null;
             }
             if (acc_info != null)
             {
+                foreach (var i in acc_info.services)
+                {
+                   // DateTimeFormatInfo dtFormat = new System.GlobalizationDateTimeFormatInfo();
+                   // dtFormat.ShortDatePattern = "yyyy/MM/dd";
+                    if (DateTime.ParseExact(i.start_date, "yyyy/MM/dd",System.Globalization.CultureInfo.InvariantCulture) >= DateTime.Now || DateTime.ParseExact(i.end_date, "yyyy/MM/dd",System.Globalization.CultureInfo.InvariantCulture) <= DateTime.Now)
+                    {
+                        i.current_recurrent_status = "O";
+                        i.use_status = "N";
+                    }
+
+                }
                 return acc_info;
             }
+            else
+            {
 
             account_info _acc_info = new account_info();
             _acc_info._id = client_id;
@@ -1854,11 +1899,12 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             _acc_info.purchase_dtls = get_purchase_info_oracle(client_id);
             _acc_info.services = get_catalog_info_oracle(client_id, device_id, null);
             _acc_info.activation_code = get_activation_code_oracle(client_id);
-            
+            return _acc_info;
+            }
 
        //     account_collection.Save(_acc_info);
 
-            return _acc_info;
+            
 
 
         }
@@ -1866,7 +1912,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         public string refresh_client(string client_id)
         {
             var account_collection = _MongoDB.GetCollection<account_info>("account_info");
-            account_collection.Remove(Query.EQ("_id", new BsonString(client_id)));
+            account_collection.DeleteOne(doc => doc._id == client_id);
        //     get_account_info(client_id,null);
             return "Sucess";
            
@@ -2051,7 +2097,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
 
                     try
                     {
-                        sg_p = (software_packages)sg_package_collection.FindOne(Query.EQ("_id", new BsonString(system_type + "+" + sw_group + "+" + group_id)));
+                        sg_p = (software_packages)sg_package_collection.Find(doc=>doc._id==system_type + "+" + sw_group + "+" + group_id);
                     }
                     catch (Exception e)
                     {
@@ -2100,7 +2146,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
                     sg_p._id = system_type + "+" + sw_group + "+" + group_id;
                     sg_p.packages = all_packages;
                     var sg_package_collection = _MongoDB_package.GetCollection<software_packages>("software_packages");
-                    sg_package_collection.Save(sg_p);
+                    sg_package_collection.ReplaceOne(doc=>doc._id==sg_p._id,sg_p, new UpdateOptions() { IsUpsert = true });
                 }
 
                 if (cal_type == "T")
@@ -2134,6 +2180,8 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
                         _a.use_status = used ?? "N";
                         _a.status_description = package_status??"未購買";
                         _a.current_recurrent_status = ((from a in _detail_packages where a.recurrent == "R" select a).Count() > 0) ? "R" : "O";
+                        _a.current_recurrent_package = ((from a in _detail_packages where a.recurrent == "R" && a.package_id==_a.package_id select a).Count() > 0) ? "Y" : "N";
+
                         _a.next_pay_date = (_a.current_recurrent_status == "R") ? end_date : null;
                         _a.package_status = (_a.current_recurrent_status == "R") ? "N" : "Y";
                         _a.package_status_message = (_a.current_recurrent_status == "R") ? "已使用自動扣款" : null; 
@@ -2212,7 +2260,81 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             return v_result;
         }
 
+        public JsonArray get_package_info_a(string client_id, string system_type, int? min_credits, string device_id, string group_id, string imsi, string sw_version, string from_credits, string cal_type)
+        {
+            List<package_info> all_packages = get_package_info(client_id,system_type,min_credits, device_id,group_id,imsi, sw_version,from_credits, cal_type);
+            JsonObject package = new JsonObject();
+            List<JsonObject> _result_a = new List<JsonObject>();
+            List<bsm_package_special> _all_special = get_package_special();
+           
+                foreach (var item in all_packages)
+                {
+                    package = (JsonObject)JsonConvert.Import(JsonConvert.ExportToString(item));
 
+                    List<bsm_package_special> specials = (from c in _all_special where c.package_id == item.package_id && (DateTime.Compare(c.start_date, DateTime.Now) <= 0 && DateTime.Compare(DateTime.Now, c.end_date) <= 0) && (c.proj_no == "" || c.proj_no == sw_version.Substring(0,7)) orderby c.proj_no  select c).ToList();
+                    foreach (var special in specials)
+                    {
+                        JsonObject _option = special.Option;
+                        foreach (string name in _option.Names)
+                        {
+                            if (package.Contains(name))
+                            {
+                                package[name] = _option[name];
+                            }
+                            else
+                            {
+                                package.Add(name, _option[name]);
+                            }
+                            if (name=="display_order") {
+                                package.Remove("display_order");
+                                package.Add("display_order",Convert.ToInt64(_option[name]));
+                            }
+                        }
+                    }
+
+                    _result_a.Add(package);
+                }
+                _result_a = (from x in _result_a orderby Convert.ToInt64(x["display_order"]), x["package_id"].ToString() select x).ToList();
+                JsonArray json_a = new JsonArray();
+                foreach (var a in _result_a) json_a.Add(a);
+                return json_a;
+        }
+
+
+        public List<bsm_package_special> get_package_special()
+        {
+            var _collection = _MongoDB_package.GetCollection<bsm_package_special>("bsm_package_special");
+            List<bsm_package_special> _result = _collection.Find(_ => true).ToList();
+            return _result;
+        }
+        public void post_package_special()
+        {
+            var _collection = _MongoDB_package.GetCollection<bsm_package_special>("bsm_package_special");
+            bsm_package_special _data = new bsm_package_special();
+            connectDB();
+
+            string sql = @"select pk_no id,x.src_id,proj_no,(start_date+8/24) start_date,(end_date+8/24) end_date,x.pc_option from bsm_package_special_setting x where type = 'PACKAGE' and status_flg in ('P','Z')";
+            OracleCommand cmd = new OracleCommand(sql, conn);
+            OracleDataReader rd = cmd.ExecuteReader();
+            while (rd.Read())
+            {
+                _data._id = Convert.ToString(rd["ID"]);
+                _data.package_id = Convert.ToString(rd["SRC_ID"]);
+                _data.proj_no = Convert.ToString(rd["PROJ_NO"]);
+                _data.start_date = Convert.ToDateTime(rd["START_DATE"]);
+                _data.end_date = Convert.ToDateTime(rd["END_DATE"]);
+                try
+                {
+                    _data.Option = (JsonObject)JsonConvert.Import(Convert.ToString(rd["PC_OPTION"]));
+                }
+                catch(Exception e)
+                {
+                    var a = "";
+                    a = Convert.ToString(rd["PC_OPTION"]);
+                }
+                _collection.ReplaceOne(doc=>doc._id==_data._id,_data, new UpdateOptions() { IsUpsert = true });
+            };
+        }
         public class bsm_message
         {
             public string _id;
@@ -2227,8 +2349,10 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             string software_group = (sw_version != null )?sw_version.Substring(0, 7):"";
     
             var bsm_message_collection = _MongoDB_package.GetCollection<bsm_message>("bsm_messages");
-            var query = Query.EQ("_id",message_type);
-            bsm_message re= bsm_message_collection.FindOne(query);
+            // var query = Query.EQ("_id",message_type);
+            bsm_message re;
+            try { re = bsm_message_collection.Find(doc => doc._id == message_type).First(); }
+            catch(Exception e) { re = null; }
             if (re != null)
             {
                 _result = re.message;
@@ -2259,7 +2383,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
                     msg.message = _result;
                     msg.message_type = message_type;
                     msg._id = message_type;
-                    bsm_message_collection.Save(msg);
+                    bsm_message_collection.ReplaceOne(doc=>doc._id==msg._id, msg,new UpdateOptions() { IsUpsert = true });
                 }
                 finally
                 {
@@ -2776,7 +2900,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             {
                 try
                 {
-                    v_result = (from a in _reault_list where a.purchase_id == purchase_id select a).First();
+                    v_result = (from a in _reault_list where a.purchase_id == purchase_id select a ).First();
                 }
                 catch (InvalidOperationException e)
                 {
@@ -2871,61 +2995,11 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
 
         public string check_access(string token, string client_id, string asset_id, string device_id)
         {
-         /*   connectDB();
-
-            string sql1 = "begin :P_RESULT := check_cdi_access(:P_CLIENT_ID,:P_ASSET_ID); end; ";
-            string result = "N";
-            try
-            {
-                OracleCommand cmd = new OracleCommand(sql1, conn);
-                cmd.BindByName = true;
-                OracleString v_o_result;
-                cmd.Parameters.Add("P_CLIENT_ID", OracleDbType.Varchar2, 32, client_id, ParameterDirection.Input);
-                cmd.Parameters.Add("P_ASSET_ID", OracleDbType.Varchar2, 32, asset_id, ParameterDirection.Input);
-                cmd.Parameters.Add("P_RESULT", OracleDbType.Varchar2, 32, ParameterDirection.InputOutput);
-                cmd.ExecuteNonQuery();
-
-                v_o_result = (OracleString)cmd.Parameters["P_RESULT"].Value;
-                result = v_o_result.ToString();
-            }
-            finally
-            {
-                conn.Close();
-            }
-            */
             return "Y";
-
         }
 
         public string get_stock_broker(string client_id)
         {
-         /*   conn.Open();
-
-            client_id = client_id.ToUpper();
-
-            string _sql = "Select stock_broker FROM bsm_client_mas a where a.MAC_ADDRESS=:CLIENT_ID";
-            string _result = "";
-            OracleCommand _cmd = new OracleCommand(_sql, conn);
-            _cmd.Parameters.Add("CLIENT_ID", client_id);
-            OracleDataReader _Data_Reader;
-
-            try
-            {
-                _Data_Reader = _cmd.ExecuteReader();
-                if (_Data_Reader.Read())
-                {
-                    if (!_Data_Reader.IsDBNull(0))
-                    {
-                        _result = _Data_Reader.GetString(0);
-                    }
-                }
-            }
-            finally
-            {
-                _cmd.Dispose();
-                conn.Close();
-
-            } */
             return null;
         }
 
@@ -3055,18 +3129,6 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
 
         private string check_apt_user(string imsi)
         {
-    /*        OracleCommand _cmd = new OracleCommand("select bsm_apt_service.check_min( :p_min) RESULT from dual", conn);
-            _cmd.Parameters.Add("P_MIN", imsi);
-            OracleDataReader _rd = _cmd.ExecuteReader();
-            if (_rd.Read())
-            {
-                return (string)_rd["RESULT"];
-            }
-            else
-            {
-                return "N";
-            }
-            */
             return "";
         }
 
@@ -3080,7 +3142,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
 
         public void refresh()
         {
-            if (_MongoDB_package != null) _MongoDB_package.Drop();
+            if (_MongoDB_package != null) _Mongoclient_package.DropDatabase(MongoDB_Database + "PackageInfoDB");;
             get_message("COUPON",null);
             get_message("CREDIT",null);
             get_message("NULL",null);
@@ -3101,6 +3163,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             get_message("DSP_TEXT",null);
             get_message("SERVICE_ALREADY_TEXT",null);
             get_message("USE_CREDITS_TEXT",null);
+            post_package_special();
 
           //  get_all_package();
 
@@ -3122,8 +3185,8 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
     public class BSM_CLIENT_SET
     {
         private MongoClient _Mongoclient;
-        private MongoServer _MongoServer;
-        private MongoDatabase _MongoDB;
+      //  private MongoServer _MongoServer;
+        private IMongoDatabase _MongoDB;
 
 
 
@@ -3135,13 +3198,13 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             if (MongoDbconnectionString != null && MongoDbconnectionString != "")
             {
                 _Mongoclient = new MongoClient(MongoDbconnectionString);
-                _MongoServer = _Mongoclient.GetServer();
-                _MongoDB = _MongoServer.GetDatabase(MongoDB_Database + "ClientInfo");
+                //_MongoServer = _Mongoclient.GetServer();
+                _MongoDB = _Mongoclient.GetDatabase(MongoDB_Database + "ClientInfo");
             }
             else
             {
                 _Mongoclient = null;
-                _MongoServer = null;
+                //_MongoServer = null;
                 _MongoDB = null;
             }
             
@@ -3153,10 +3216,14 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         {
             string _result="";
             string _software_goroup = software_ver.Substring(0, 7);
-            MongoCollection _Mogodb_client_list = _MongoDB.GetCollection("client_values");
+            IMongoCollection< client_value> _Mogodb_client_list = _MongoDB.GetCollection<client_value>("client_values");
 
-            var q = Query.And(Query.EQ("value_name", value_name), Query.EQ("software_group", _software_goroup));
-            client_value _result_v = _Mogodb_client_list.FindOneAs<client_value>(q);
+            // var q = Query.And(Query.EQ("value_name", value_name), Query.EQ("software_group", _software_goroup));
+            client_value _result_v;
+            try
+            {
+                _result_v = _Mogodb_client_list.Find(doc => doc.value_name == value_name && doc.software_group == _software_goroup).First();
+            }catch(Exception e) { _result_v = null; }
             if (_result_v != null)
             {
                 _result = _result_v.value;
@@ -3275,6 +3342,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         public List<catalog_info> get_catalog_info(string token, string client_id, string device_id,string sw_version)
         {
             List<catalog_info> v_result = _base.get_catalog_info(client_id, device_id, sw_version);
+            logger.Info(v_result);
             return v_result;
         }
 
@@ -3291,6 +3359,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         public List<purchase_info_list> get_purchase_info(string token, string client_id, string device_id)
         {
             List<purchase_info_list> v_result = _base.get_purchase_info(client_id, device_id, null);
+            logger.Info(v_result);
             return v_result;
         }
 
@@ -3302,17 +3371,18 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         /// </summary>
         [JsonRpcMethod("get_package_info")]
         [JsonRpcHelp("取得Package 資訊,(cal_type = 'T' 為單片,'P' 方案")]
-        public List<package_info> get_package_info(string token,string group_id, string client_id, string device_id,string imsi,string sw_version,string cal_type)
+        public JsonArray get_package_info(string token,string group_id, string client_id, string device_id,string imsi,string sw_version,string cal_type)
         {
-             List<package_info> v_result;
+            JsonArray v_result;
             if (group_id == null)
             {
-                v_result  = _base.get_package_info(client_id, "BUY", device_id, imsi, sw_version,cal_type);
+                v_result = _base.get_package_info_a(client_id, "BUY", 0, device_id, null, imsi, sw_version, "N", cal_type);
             }
             else
             {
-                v_result = _base.get_package_info(client_id, "BUY", 0, device_id, group_id, imsi, sw_version, "N",cal_type);
+                v_result = _base.get_package_info_a(client_id, "BUY", 0, device_id, group_id, imsi, sw_version, "N",cal_type);
             }
+            logger.Info(v_result);
             logger.Info("Sccess");
 
             return v_result;
@@ -3326,9 +3396,9 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         /// </summary>
         [JsonRpcMethod("get_group_package_info")]
         [JsonRpcHelp("取得Package 資訊, by Group")]
-        public System.Collections.Generic.List<group> get_group_package_info(string token, string client_id, string device_id,string imsi,string ency_imsi,string sw_version)
+        public System.Collections.Generic.List<JsonObject> get_group_package_info(string token, string client_id, string device_id,string imsi,string ency_imsi,string sw_version)
         {
-            List<group> v_result = new List<group>();
+            List<JsonObject> v_result = new List<JsonObject>();
             v_result = _base.get_group_package_info(token, client_id, device_id,imsi,sw_version);
             logger.Info(JsonConvert.ExportToString(v_result));
 
@@ -3432,12 +3502,14 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         /// <param name="purchase_id"></param>
         /// <returns></returns>
         [JsonRpcMethod("get_package_info_by_id")]
-        public package_info get_package_info_by_id(string client_id, string system_type, int? min_credits, string device_id, string package_id, string sw_version)
+        public JsonObject get_package_info_by_id(string client_id, string system_type, int? min_credits, string device_id, string package_id, string sw_version)
         {
             
             system_type = system_type ?? "BUY";
-            List<package_info> v_result = _base.get_package_info(client_id, system_type, min_credits, device_id, null, null, sw_version,"N","P");
-            package_info result = ((from a in v_result where a.package_id == package_id select a).Count() > 0) ? (from a in v_result where a.package_id == package_id select a).First() : null;
+            JsonArray v_result = _base.get_package_info_a(client_id, system_type, min_credits, device_id, null, null, sw_version, "N", "P");
+            List<JsonObject> _la = new List<JsonObject>();
+            foreach (JsonObject a in v_result) { _la.Add(a); }
+            JsonObject result = ((from a in _la where a["package_id"].ToString() == package_id select a).Count() > 0) ? (from a in _la where a["package_id"].ToString() == package_id select a).First() : null;
             return result;
         }
         /// <summary>

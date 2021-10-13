@@ -21,8 +21,8 @@ using log4net;
 using log4net.Config;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using MongoDB.Driver.Builders;
-using MongoDB.Driver.GridFS;
+//using MongoDB.Driver.Builders;
+//using MongoDB.Driver.GridFS;
 using MongoDB.Driver.Linq;
 using System.Web.Security;
 
@@ -67,8 +67,8 @@ namespace BSM
 
         private string _MongoDbconnectionString;
         private MongoClient _Mongoclient;
-        private MongoServer _MongoServer;
-        private MongoDatabase _MongoDB;
+        //private MongoServer _MongoServer;
+        private IMongoDatabase _MongoDB;
 
         private string MongoDBConnectString;
         private string MongoDBConnectString_package;
@@ -112,9 +112,10 @@ namespace BSM
             public string client_id;
             public string device_id;
             public string phone_no;
+            public string sw_version;
             public string activate_code;
             public string result_code;
-            public string method;
+            public string method; 
             public Boolean send_passcode;
             public string notice;
             public string model_info;
@@ -128,7 +129,7 @@ namespace BSM
         /// <returns></returns>
         [JsonRpcMethod("register")]
         [JsonRpcHelp("Client 登錄")]
-        public BSM_Result register(string client_id, string mobile_number, string device_id, string passcode,Boolean? send_passcode )
+        public BSM_Result register(string client_id, string mobile_number, string device_id, string passcode,string sw_version,Boolean? send_passcode )
         {
 
             BSM_ClientInfo client_info = new BSM_ClientInfo();
@@ -181,6 +182,7 @@ namespace BSM
             _ms.device_id = device_id;
             _ms.phone_no = mobile_number;
             _ms.activate_code = passcode;
+            _ms.sw_version = sw_version;
             _ms.send_passcode =  send_passcode ??  true;
 
             System.Messaging.Message _msg = new System.Messaging.Message();
@@ -231,7 +233,7 @@ namespace BSM
         [JsonRpcMethod("activate")]
         [JsonRpcHelp("Client 啟用")]
 
-        public BSM_Result activate_q(string client_id, string device_id, string mobile_number, string model_info)
+        public BSM_Result activate_q(string client_id, string device_id, string mobile_number, string model_info,string sw_version,string swver)
         {
             BSM_ClientInfo client_info = new BSM_ClientInfo();
            
@@ -256,9 +258,8 @@ namespace BSM
             _ms.device_id = device_id;
             _ms.phone_no = mobile_number;
             _ms.model_info = model_info;
+            _ms.sw_version = sw_version??swver;
            
-            
-
             System.Messaging.Message _msg = new System.Messaging.Message();
             _msg.Body = _ms;
             this.MsgQ_register.Send(_msg);
@@ -276,7 +277,7 @@ namespace BSM
         /// <param name="Activation_code"></param>
         /// <returns></returns>
 
-        [JsonRpcMethod("activate_o")]
+/*        [JsonRpcMethod("activate_o")]
         [JsonRpcHelp("Client 啟用")]
         public BSM_Result activate(string client_id, string device_id, string mobile_number,string model_info)
         {
@@ -390,22 +391,22 @@ namespace BSM
                         _client_info.mac_address = t_client_info.MAC_ADDRESS;
                         _client_info.client_status = t_client_info.STATUS_FLG;
 
-                        if (bsm_result.RESULT_CODE != "BSM-00000")
+                        if (bsm_result.result_code != "BSM-00000")
                         {
-                            _result.result_code = bsm_result.RESULT_CODE;
-                            _result.result_message = bsm_result.RESULT_MESSAGE;
+                            _result.result_code = bsm_result.result_code;
+                            _result.result_message = bsm_result.result_message;
                             _result.client = _client_info;
                             return _result;
                         }
                         else
                         {
-                            _result.result_code = bsm_result.RESULT_CODE;
-                            _result.result_message = bsm_result.RESULT_MESSAGE;
+                            _result.result_code = bsm_result.result_code;
+                            _result.result_message = bsm_result.result_message;
                             _result.client = _client_info;
-                            if(bsm_result.RESULT_MESSAGE!= null)
-                            if (bsm_result.RESULT_MESSAGE.IndexOf("message:") >= 0)
+                            if(bsm_result.result_message!= null)
+                            if (bsm_result.result_message.IndexOf("message:") >= 0)
                             {
-                                string p_msg_str = bsm_result.RESULT_MESSAGE.Replace("message:", "");
+                                string p_msg_str = bsm_result.result_message.Replace("message:", "");
                                 JsonObject p_message = (JsonObject)JsonConvert.Import(p_msg_str);
                                 _result.message =  p_message;
 
@@ -430,12 +431,12 @@ namespace BSM
             return _result;
         }
 
-
+*/
 
 
         [JsonRpcMethod("promo_activate")]
         [JsonRpcHelp("啟用 Promo")]
-        public string promo_activate(string promo_code, string client_id, string device_id) 
+        public string promo_activate(string promo_code, string client_id, string device_id,string software_group) 
         {
             Dictionary<string, string> _res = new Dictionary<string, string>();
             _res["Failure"] = "F";
@@ -456,7 +457,7 @@ namespace BSM
             conn.Open();
             try
             {
-                string sql1 = "begin :result := promo_activate(:promo_code, :client_id,:device_id); end; ";
+                string sql1 = "begin :result := promo_activate(:promo_code, :client_id,:device_id,:software_group); end; ";
 
                     OracleCommand cmd = new OracleCommand(sql1, conn);
                     try
@@ -466,6 +467,8 @@ namespace BSM
                         cmd.Parameters.Add("PROMO_CODE", promo_code);
                         cmd.Parameters.Add("CLIENT_ID", client_id);
                         cmd.Parameters.Add("DEVICE_ID", device_id);
+                        cmd.Parameters.Add("SOFTWARE_GROUP", software_group);
+
 
                         OracleParameter param_result = new OracleParameter();
                         param_result.ParameterName = "RESULT";
@@ -556,46 +559,62 @@ namespace BSM
         {
             JsonObject _result = new JsonObject();
             string p_params;
-            p_params = JsonConvert.ExportToString(p_tstar_order);
-
-            conn.Open();
-            try
+            var i = 5;
+            while (i > 0)
             {
-                string sql1 = "begin  :result := tstar_order_service.tstar_order(p_order => :p_order); end;";
 
-                OracleCommand cmd = new OracleCommand(sql1, conn);
+                p_params = JsonConvert.ExportToString(p_tstar_order);
+
+                conn.Open();
                 try
                 {
-                    string result;
-                    cmd.BindByName = true;
-                    cmd.Parameters.Add("P_ORDER", p_params);
+                    string sql1 = "begin  :result := tstar_order_service.tstar_order(p_order => :p_order); end;";
+
+                    OracleCommand cmd = new OracleCommand(sql1, conn);
+                    try
+                    {
+                        string result;
+                        cmd.BindByName = true;
+                        cmd.Parameters.Add("P_ORDER", p_params);
 
 
-                    OracleParameter param_result = new OracleParameter();
-                    param_result.ParameterName = "RESULT";
-                    param_result.OracleDbType = OracleDbType.Varchar2;
-                    param_result.Size = 1024;
-                    param_result.Direction = ParameterDirection.Output;
+                        OracleParameter param_result = new OracleParameter();
+                        param_result.ParameterName = "RESULT";
+                        param_result.OracleDbType = OracleDbType.Varchar2;
+                        param_result.Size = 1024;
+                        param_result.Direction = ParameterDirection.Output;
 
-                    cmd.Parameters.Add(param_result);
-                    cmd.ExecuteNonQuery();
-                    result = param_result.Value.ToString();
-                    logger.Info(result);
-                    _result = JsonConvert.Import<JsonObject>(new StringReader(result));
+                        cmd.Parameters.Add(param_result);
+                        cmd.ExecuteNonQuery();
+                        result = param_result.Value.ToString();
+                        logger.Info(result);
+                        _result = JsonConvert.Import<JsonObject>(new StringReader(result));
+                        i = 0;
+
+                    }
+                    finally
+                    {
+                        cmd.Dispose();
+                    }
+                }
+                catch (Exception e)
+                {
+                    logger.Info(e.Message);
+                    if (e.Message.IndexOf("ORA") >= 0)
+                    {
+                        System.Threading.Thread.Sleep(1000);
+                        i--;
+                    }
+                    else
+                    {
+                        i = 0;
+                    }
 
                 }
                 finally
                 {
-                    cmd.Dispose();
+                    conn.Close();
                 }
-            }
-            catch (Exception e)
-            {
-                logger.Info(e.Message);
-            }
-            finally
-            {
-                conn.Close();
             }
 
             logger.Info(JsonConvert.ExportToString(_result));
@@ -629,81 +648,118 @@ namespace BSM
             string name,
             string email,
             string order_id,
+            string bsm_order_id,
             string order_date,
             string software_group,
             string package_id,
+            JsonArray packages,
             int? price,
             int? pay_amount,
             string device_id,
             string action_date,
             string cancel_date,
             string expire_date,
-            string orig_order_id)
+            string recurrent_type,
+            string free_start_date,
+            string free_end_date,
+            string orig_order_id,
+            int? offset,
+            string remark,
+            string vendor_package_id,
+            Boolean? purge_flg)
         {
             JsonObject _result = new JsonObject();
-            JsonObject _partner_order = new JsonObject();
-            _partner_order.Add("action", action);
-            _partner_order.Add("mobile", mobile);
-            _partner_order.Add("vendor", vendor);
-            _partner_order.Add("client_id", client_id);
-            _partner_order.Add("name", name);
-            _partner_order.Add("email", email);
-            _partner_order.Add("order_id", order_id);
-            _partner_order.Add("order_date", order_date);
-            _partner_order.Add("software_group", software_group);
-            _partner_order.Add("package_id", package_id);
-            _partner_order.Add("price", price);
-            _partner_order.Add("pay_amount", pay_amount);
-            _partner_order.Add("device_id", device_id);
-            _partner_order.Add("action_date", action_date);
-            _partner_order.Add("cancel_date", cancel_date);
-            _partner_order.Add("orig_order_id", orig_order_id);
-            _partner_order.Add("expire_date", expire_date);
-
-            string p_params;
-            p_params = JsonConvert.ExportToString(_partner_order);
-
-            conn.Open();
-            try
+            int v_retry = 5;
+            while (v_retry > 0)
             {
-                string sql1 = "begin :result := partner_service.partner_order_service(p_order => :p_order); end;";
+                JsonObject _partner_order = new JsonObject();
+                _partner_order.Add("action", action);
+                _partner_order.Add("mobile", mobile);
+                _partner_order.Add("vendor", vendor);
+                _partner_order.Add("client_id", client_id);
+                _partner_order.Add("name", name);
+                _partner_order.Add("email", email);
+                _partner_order.Add("order_id", order_id);
+                _partner_order.Add("bsm_order_id", bsm_order_id);
+                _partner_order.Add("order_date", order_date);
+                _partner_order.Add("software_group", software_group);
+                _partner_order.Add("package_id", package_id);
+                _partner_order.Add("packages", packages);
+                _partner_order.Add("price", price);
+                _partner_order.Add("pay_amount", pay_amount);
+                _partner_order.Add("device_id", device_id);
+                _partner_order.Add("recurrent_type", recurrent_type);
+                _partner_order.Add("action_date", action_date);
+                _partner_order.Add("cancel_date", cancel_date);
+                _partner_order.Add("free_start", free_start_date);
+                _partner_order.Add("free_end", free_end_date);
+                _partner_order.Add("orig_order_id", orig_order_id);
+                _partner_order.Add("expire_date", expire_date);
+                _partner_order.Add("offset", offset);
+                _partner_order.Add("remrk", remark);
+                _partner_order.Add("purge_flg", purge_flg);
+                _partner_order.Add("vendor_package_id", vendor_package_id);
 
-                OracleCommand cmd = new OracleCommand(sql1, conn);
+                string p_params;
+                p_params = JsonConvert.ExportToString(_partner_order);
+
+                conn.Open();
                 try
                 {
-                    string result;
-                    cmd.BindByName = true;
-                    cmd.Parameters.Add("P_ORDER", p_params);
+                    string sql1 = "begin :result := partner_service.partner_order_service(p_order => :p_order); end;";
+
+                    OracleCommand cmd = new OracleCommand(sql1, conn);
+                    try
+                    {
+                        string result;
+                        cmd.BindByName = true;
+                        cmd.Parameters.Add("P_ORDER", p_params);
 
 
-                    OracleParameter param_result = new OracleParameter();
-                    param_result.ParameterName = "RESULT";
-                    param_result.OracleDbType = OracleDbType.Varchar2;
-                    param_result.Size = 1024;
-                    param_result.Direction = ParameterDirection.Output;
+                        OracleParameter param_result = new OracleParameter();
+                        param_result.ParameterName = "RESULT";
+                        param_result.OracleDbType = OracleDbType.Varchar2;
+                        param_result.Size = 1024;
+                        param_result.Direction = ParameterDirection.Output;
 
-                    cmd.Parameters.Add(param_result);
-                    cmd.ExecuteNonQuery();
-                    result = param_result.Value.ToString();
-                    logger.Info(result);
-                    _result = JsonConvert.Import<JsonObject>(new StringReader(result));
+                        cmd.Parameters.Add(param_result);
+                        cmd.ExecuteNonQuery();
+                        result = param_result.Value.ToString();
+                        v_retry = 0;
+                        logger.Info(result);
+                        try
+                        {
+                            _result = JsonConvert.Import<JsonObject>(new StringReader(result));
+                        }
+                        catch (Exception e)
+                        {
+                            _result = new JsonObject();
+                            _result.Add("result_code", "BSM-00803");
+                            _result.Add("result_message", result);
+                        }
 
+                    }
+                    finally
+                    {
+                        cmd.Dispose();
+                    }
+                }
+                catch (Exception e)
+                {
+                    logger.Info(e.Message);
+
+                        System.Threading.Thread.Sleep(1000);
+                        v_retry--;
+
+                    
+                    _result = new JsonObject();
+                    _result.Add("result_code", "BSM-00803");
+                    _result.Add("result_message", e.Message);
                 }
                 finally
                 {
-                    cmd.Dispose();
+                    conn.Close();
                 }
-            }
-            catch (Exception e)
-            {
-                logger.Info(e.Message);
-                _result = new JsonObject();
-                _result.Add("RESULT_CODE", "BSM-00803");
-                _result.Add("RESULT_MESSAGE", e.Message);
-            }
-            finally
-            {
-                conn.Close();
             }
 
             logger.Info(JsonConvert.ExportToString(_result));
@@ -737,7 +793,7 @@ namespace BSM
 
         [JsonRpcMethod("purchase")]
         [JsonRpcHelp("Client 購買")]
-        public BSM_Result purchase(string token, string device_id, string sw_version, BSM_Purchase_Request purchase_info,string vendor_id)
+        public BSM_Result purchase(string token, string device_id,string software_version, string sw_version, BSM_Purchase_Request purchase_info,string vendor_id)
         {
             BSM_Result result;
             BSM_Info.BSM_Info_Service_base BSM_Info_base = new BSM_Info.BSM_Info_Service_base(conn.ConnectionString, MongoDBConnectString, MongoDBConnectString_package, MongoDB_Database);
@@ -922,7 +978,7 @@ namespace BSM
                 OracleParameter param6 = new OracleParameter();
                 param6.ParameterName = "SW_VERSION";
                 param6.Direction = ParameterDirection.Input;
-                param6.Value = sw_version;
+                param6.Value = software_version??sw_version;
                 cmd.Parameters.Add(param6);
 
                 cmd.ExecuteNonQuery();
@@ -930,16 +986,16 @@ namespace BSM
                 bsm_result = (TBSM_RESULT)param2.Value;
                 bsm_purchase = (TBSM_PURCHASE)param1.Value;
 
-                if (bsm_result.RESULT_CODE != "BSM-00000")
+                if (bsm_result.result_code != "BSM-00000")
                 {
-                    result.result_code = bsm_result.RESULT_CODE;
-                    result.result_message = bsm_result.RESULT_MESSAGE;
+                    result.result_code = bsm_result.result_code;
+                    result.result_message = bsm_result.result_message;
                     result.purchase_id = bsm_purchase.MAS_NO;
                 }
                 else
                 {
-                    result.result_code = bsm_result.RESULT_CODE;
-                    result.result_message = bsm_result.RESULT_MESSAGE;
+                    result.result_code = bsm_result.result_code;
+                    result.result_message = bsm_result.result_message;
                     result.purchase_id = bsm_purchase.MAS_NO;
                 }
 
@@ -1047,8 +1103,11 @@ namespace BSM
             cht_coupon_db _cache;
 
             var _collection_c = _MongoDB.GetCollection<cht_coupon_db>("catche_cht_coupon");
-            var _qc = Query<cht_coupon_db>.EQ(e => e.Id, device_id);
-            _cache = _collection_c.FindOne(_qc);
+            // var _qc = Query<cht_coupon_db>.EQ(e => e.Id, device_id);
+            try
+            {
+                _cache = _collection_c.Find(doc => doc.Id == device_id).First();
+            }catch(Exception e) { _cache = null; }
 
 
             conn.Open();
@@ -1183,7 +1242,7 @@ namespace BSM
                                 _cache.session_id = _rd_2.GetString(4);
                             }
                             _rd_2.Dispose();
-                            _collection_c.Save(_cache);
+                            _collection_c.ReplaceOne(doc=>doc.Id==_cache.Id,_cache, new UpdateOptions() { IsUpsert = true });
                             _cache.status = 0;
                         }
                     }
@@ -1277,7 +1336,7 @@ namespace BSM
                         _cache.session_id = _rd_2.GetString(4);
                     }
                     _rd_2.Dispose();
-                    _collection_c.Save(_cache);
+                    _collection_c.ReplaceOne(doc=>doc.Id==_cache.Id,_cache, new UpdateOptions() { IsUpsert = true });
                 }
 
             }
@@ -1297,7 +1356,13 @@ namespace BSM
             var read = new StreamReader(context.Request.InputStream);
             string jsontstr = read.ReadToEnd();
             context.Request.InputStream.Position = pos;
+            int card_pos = jsontstr.ToUpper().IndexOf("CARD_NUMBER");
+            if (card_pos > 0)
+            {
+                jsontstr = jsontstr.Substring(0, card_pos) + jsontstr.Substring(card_pos + 47);
+            }
             logger.Info(jsontstr);
+
 
             base.ProcessRequest(context);
         }

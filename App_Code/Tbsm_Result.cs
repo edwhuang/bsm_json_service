@@ -21,9 +21,9 @@ namespace BsmDatabaseObjects
         
         private bool m_IsNull;
         
-        private string m_RESULT_CODE;
+        private string m_result_code;
         
-        private string m_RESULT_MESSAGE;
+        private string m_result_message;
         
         public TBSM_RESULT() {
             // TODO : Add code to initialise the object
@@ -46,35 +46,35 @@ namespace BsmDatabaseObjects
                 return obj;
             }
         }
-        
+
         [OracleObjectMappingAttribute("RESULT_CODE")]
-        public string RESULT_CODE {
+        public string result_code {
             get {
-                return this.m_RESULT_CODE;
+                return this.m_result_code;
             }
             set {
-                this.m_RESULT_CODE = value;
+                this.m_result_code = value;
             }
         }
         
         [OracleObjectMappingAttribute("RESULT_MESSAGE")]
-        public string RESULT_MESSAGE {
+        public string result_message {
             get {
-                return this.m_RESULT_MESSAGE;
+                return this.m_result_message;
             }
             set {
-                this.m_RESULT_MESSAGE = value;
+                this.m_result_message = value;
             }
         }
         
         public virtual void FromCustomObject(Oracle.DataAccess.Client.OracleConnection con, System.IntPtr pUdt) {
-            Oracle.DataAccess.Types.OracleUdt.SetValue(con, pUdt, "RESULT_CODE", this.RESULT_CODE);
-            Oracle.DataAccess.Types.OracleUdt.SetValue(con, pUdt, "RESULT_MESSAGE", this.RESULT_MESSAGE);
+            Oracle.DataAccess.Types.OracleUdt.SetValue(con, pUdt, "RESULT_CODE", this.result_code);
+            Oracle.DataAccess.Types.OracleUdt.SetValue(con, pUdt, "RESULT_MESSAGE", this.result_message);
         }
         
         public virtual void ToCustomObject(Oracle.DataAccess.Client.OracleConnection con, System.IntPtr pUdt) {
-            this.RESULT_CODE = ((string)(Oracle.DataAccess.Types.OracleUdt.GetValue(con, pUdt, "RESULT_CODE")));
-            this.RESULT_MESSAGE = ((string)(Oracle.DataAccess.Types.OracleUdt.GetValue(con, pUdt, "RESULT_MESSAGE")));
+            this.result_code = ((string)(Oracle.DataAccess.Types.OracleUdt.GetValue(con, pUdt, "RESULT_CODE")));
+            this.result_message = ((string)(Oracle.DataAccess.Types.OracleUdt.GetValue(con, pUdt, "RESULT_MESSAGE")));
         }
         
         public virtual void ReadXml(System.Xml.XmlReader reader) {
