@@ -735,15 +735,15 @@ namespace BSM_Info
 
     public class BSM_Info_Service_base
     {
-       
+
         OracleConnection conn;
 
         private string _MongoDbconnectionString;
         private string _MongoDbconnectionString_package;
         private MongoClient _Mongoclient_package;
-       // private MongoServer _MongoServer_package;
+        // private MongoServer _MongoServer_package;
         private MongoClient _Mongoclient;
-      //  private MongoServer _MongoServer;
+        //  private MongoServer _MongoServer;
         private IMongoDatabase _MongoDB;
         private IMongoDatabase _MongoDB_package;
         private String MongoDB_Database;
@@ -833,32 +833,32 @@ namespace BSM_Info
             //
             try
             {
-                if (_MongoDbconnectionString != null && _MongoDbconnectionString !="" ){
-                _Mongoclient = new MongoClient(_MongoDbconnectionString);
-                //_MongoServer = _Mongoclient.GetServer();
-                _MongoDB = _Mongoclient.GetDatabase(MongoDB_Database+"ClientInfo");
+                if (_MongoDbconnectionString != null && _MongoDbconnectionString != "") {
+                    _Mongoclient = new MongoClient(_MongoDbconnectionString);
+                    //_MongoServer = _Mongoclient.GetServer();
+                    _MongoDB = _Mongoclient.GetDatabase(MongoDB_Database + "ClientInfo");
                 }
                 else
                 {
                     _Mongoclient = null;
-                   // _MongoServer = null;
+                    // _MongoServer = null;
                     _MongoDB = null;
                 }
 
-                if (_MongoDbconnectionString_package != null && _MongoDbconnectionString_package !="")
-                { 
-                _Mongoclient_package = new MongoClient(_MongoDbconnectionString_package);
-                //_MongoServer_package = _Mongoclient_package.GetServer();
-                _MongoDB_package = _Mongoclient_package.GetDatabase(MongoDB_Database + "PackageInfoDB");
-                }else
+                if (_MongoDbconnectionString_package != null && _MongoDbconnectionString_package != "")
+                {
+                    _Mongoclient_package = new MongoClient(_MongoDbconnectionString_package);
+                    //_MongoServer_package = _Mongoclient_package.GetServer();
+                    _MongoDB_package = _Mongoclient_package.GetDatabase(MongoDB_Database + "PackageInfoDB");
+                } else
                 {
                     _Mongoclient_package = null;
                     //_MongoServer_package = null;
                     _MongoDB_package = null;
                 }
-                
+
             }
-            catch(Exception e)
+            catch (Exception e)
             {
             }
         }
@@ -968,15 +968,15 @@ namespace BSM_Info
 
             if (acc_info != null && acc_info.services != null) _result = acc_info.services;
             else
-                _result= get_catalog_info_oracle(client_id, device_id, sw_version);
+                _result = get_catalog_info_oracle(client_id, device_id, sw_version);
 
-           // _result = (from _c in _result where _c.device_id == "" || _c.device_id == device_id select _c).ToList();
+            // _result = (from _c in _result where _c.device_id == "" || _c.device_id == device_id select _c).ToList();
             return _result;
         }
 
-        public List<catalog_info> get_catalog_info_oracle(string client_id, string device_id,string sw_version)
+        public List<catalog_info> get_catalog_info_oracle(string client_id, string device_id, string sw_version)
         {
- 
+
             List<catalog_info> v_result = new List<catalog_info>();
             string _sql;
             client_id = client_id.ToUpper();
@@ -1081,7 +1081,7 @@ order by package_type,system_type,package_status desc,end_date desc";
                         v_catalog_info.next_pay_date = Convert.ToString(v_Data_Reader["NEXT_PAY_DATE"]);
                         v_catalog_info.catalog_id = Convert.ToString(v_Data_Reader["PACKAGE_CAT_ID1"]);
                         v_catalog_info.use_status = Convert.ToString(v_Data_Reader["PACKAGE_STATUS_FLG"]);
-  
+
                         v_result.Add(v_catalog_info);
                         _i++;
 
@@ -1123,15 +1123,15 @@ order by package_type,system_type,package_status desc,end_date desc";
             if (src_no != null) _result = (from _p in _result where _p.src_no == src_no select _p).ToList();
 
 
-            _result = (from _p in _result orderby  _p.purchase_date descending,_p.purchase_id descending  where _p.device_id == "" || _p.device_id == device_id select _p).ToList();
+            _result = (from _p in _result orderby _p.purchase_date descending, _p.purchase_id descending where _p.device_id == "" || _p.device_id == device_id select _p).ToList();
             foreach (var a in _result)
             {
-                if (a.pay_type != "信用卡" && a.pay_type != "REMIT" && a.pay_type != "ATM")
+                if (a.pay_type != "信用卡二次扣款" && a.pay_type != "信用卡" && a.pay_type != "REMIT" && a.pay_type != "ATM")
                 {
                     a.price_description = "";
                     a.amount_description = "";
-                   
-                  
+
+
                 }
             }
 
@@ -1291,7 +1291,7 @@ order by package_type,system_type,package_status desc,end_date desc";
                         v_purchase_info.price_description = Convert.ToString(v_Data_Reader["PRICE_DES"]);
                         v_purchase_info.amount_description = Convert.ToString(v_Data_Reader["ITEM_PRICE"]) + "元";
                         v_purchase_info.device_id = Convert.ToString(v_Data_Reader["DEVICE_ID"]);
-                        v_purchase_info.src_no = Convert.ToString(v_Data_Reader["SRC_NO"]); 
+                        v_purchase_info.src_no = Convert.ToString(v_Data_Reader["SRC_NO"]);
 
                         if (!v_Data_Reader.IsDBNull(4))
                         {
@@ -1469,7 +1469,7 @@ order by package_type,system_type,package_status desc,end_date desc";
 
                         }
 
-                        v_purchase_info.calculation_type = Convert.ToString( v_Data_Reader["CAL_TYPE"]);
+                        v_purchase_info.calculation_type = Convert.ToString(v_Data_Reader["CAL_TYPE"]);
 
                         if (!v_Data_Reader.IsDBNull(18))
                         {
@@ -1526,7 +1526,7 @@ order by package_type,system_type,package_status desc,end_date desc";
                         _cmd2.BindByName = true;
                         _cmd2.Parameters.Add("mac_address", client_id);
                         _cmd2.Parameters.Add("package_id", v_purchase_info.package_id);
-                        
+
                         OracleDataReader v_Data_Reader2 = _cmd2.ExecuteReader();
                         try
                         {
@@ -1554,7 +1554,7 @@ order by package_type,system_type,package_status desc,end_date desc";
             finally
             {
                 conn.Close();
-   
+
             }
             return v_result;
         }
@@ -1568,15 +1568,14 @@ order by package_type,system_type,package_status desc,end_date desc";
         /// <param name="device_id"></param>
         /// <param name="version"></param>
         /// <returns></returns>
-        public List<JsonObject> get_group_package_info(string token, string client_id, string device_id,string imsi,string sw_version)
+        public List<JsonObject> get_group_package_info(string token, string client_id, string device_id, string imsi, string sw_version)
         {
             process_auto_coupon(client_id, device_id, sw_version);
 
             List<JsonObject> _result = new List<JsonObject>();
+            JsonObject _result_2;
             JsonObject _g;
             string _sw_group = "";
-
-           
 
             if (sw_version != null && sw_version != "") { _sw_group = sw_version.Substring(1, 7); }
             else
@@ -1601,10 +1600,10 @@ order by package_type,system_type,package_status desc,end_date desc";
                 }
                 finally
                 {
-   
+
                 }
             }
-            List<package_info> _package_info_list = this.get_package_info(client_id, "BUY", 0, device_id,null,imsi,sw_version,"N","P");
+            List<package_info> _package_info_list = this.get_package_info(client_id, "BUY", 0, device_id, null, imsi, sw_version, "N", "P");
             JsonArray _pk_a2 = this.get_package_info_a(client_id, "BUY", 0, device_id, null, imsi, sw_version, "N", "P");
             List<JsonObject> _pk_a = new List<JsonObject>();
             foreach (JsonObject x in _pk_a2) { _pk_a.Add(x); }
@@ -1612,33 +1611,150 @@ order by package_type,system_type,package_status desc,end_date desc";
 
             var _package_group_list = from _package_info in _package_info_list
                                       orderby _package_info.display_order, _package_info.catalog_id
-                                      group _package_info by new { _package_info.catalog_id, _package_info.catalog_description, _package_info.catalog_ref } into g
-                                      select new { group_id = g.Key.catalog_id, title = g.Key.catalog_description, group_description = g.Key.catalog_ref };
+                                      group _package_info by new { _package_info.catalog_id } into g
+                                      select new { group_id = g.Key.catalog_id, title = g.Min(s=>s.catalog_description), group_description = g.Min(s => s.catalog_ref) };
 
-            foreach ( var _pg in _package_group_list)
+            List<bsm_package_special> _all_special = get_package_special();
+
+            foreach (var _pg in _package_group_list)
             {
-                 _g = new JsonObject();
-                 _g.Add("group_id",_pg.group_id);
+                List<bsm_package_special> _specials = (from c in _all_special where c.package_id == _pg.group_id && (DateTime.Compare(c.start_date, DateTime.Now) <= 0 && DateTime.Compare(DateTime.Now, c.end_date) <= 0) && (c.proj_no == "" || c.proj_no == sw_version.Substring(0, 7)) orderby c.proj_no select c).ToList();
 
-                 _g.Add("title", _pg.title);
-                 _g.Add("group_description", _pg.group_description);
-                 _g.Add("packages", (from _package_info in _pk_a where _package_info["catalog_id"].ToString() == _pg.group_id select _package_info).ToList<JsonObject>());
+                _g = new JsonObject();
+                _g.Add("group_id", _pg.group_id);
+
+                _g.Add("title", _pg.title);
+                _g.Add("group_description", _pg.group_description);
+                _g.Add("packages", (from _package_info in _pk_a where _package_info["catalog_id"].ToString() == _pg.group_id select _package_info).ToList<JsonObject>());
+                foreach (var special in _specials)
+                {
+                    JsonObject _option = special.Option;
+                    foreach (string name in _option.Names)
+                    {
+                        if (_g.Contains(name))
+                        {
+                            _g[name] = _option[name];
+                        }
+                        else
+                        {
+                            _g.Add(name, _option[name]);
+                        }
+
+                        if (_option[name].ToString() == "remove")
+                        { _g.Remove(name); }
+                        if (name == "display_order")
+                        {
+                            _g.Remove("display_order");
+                            _g.Add("display_order", Convert.ToInt64(_option[name]));
+                        }
+                    }
+                }
+
                 _result.Add(_g);
             };
-       
+            _result = (from x in _result orderby Convert.ToInt64(x["display_order"]), x["group_id"].ToString() select x).ToList();
+
+
             return _result;
 
         }
 
-        /// <summary>
-        /// 取所有方案
-        /// Sample :
-        ///  { "client_id" : "0080C8001002" }
-        /// [{"catalog_id":"HIDO","catalog_description":"Hido\u96fb\u5f71\u9928","package_name":"\u4e00\u500b\u6708","package_id":"M00001","price_description":"\u6bcf\u670899\u5143"},{"catalog_id":"IFILM","catalog_description":"iFilm\u96fb\u5f71\u9928","package_name":"\u4e00\u500b\u6708","package_id":"M00002","price_description":"\u6bcf\u670899\u5143"},{"catalog_id":"KOD","catalog_description":"\u7f8e\u83ef\u5361\u62c9OK","package_name":"\u4e00\u500b\u6708","package_id":"K00001","price_description":"\u6bcf\u670869\u5143"}]
-        /// </summary>
-        /// 
 
-        public List<package_info> get_package_info(string client_id, string system_type, string device_id,string imsi,string sw_version,string cal_type)
+
+        public JsonObject get_group_package_info_j(string token, string client_id, string device_id, string imsi, string sw_version)
+        { List<JsonObject> _result_l=new List<JsonObject>();
+           _result_l =this.get_group_package_info(token, client_id, device_id,imsi,sw_version);
+            JsonObject _result = new JsonObject();
+            List<bsm_package_special> _all_special = get_package_special();
+
+            _result.Add("groupitems", _result_l);
+            List<bsm_package_special> specials = (from c in _all_special where c.package_id == "promotion" && (DateTime.Compare(c.start_date, DateTime.Now) <= 0 && DateTime.Compare(DateTime.Now, c.end_date) <= 0) && (c.proj_no == "" || c.proj_no == sw_version.Substring(0, 7)) orderby c.proj_no select c).ToList();
+            foreach (var special in specials)
+            {
+                JsonObject _option = special.Option;
+                foreach (string name in _option.Names)
+                {
+                    string _type = _option[name].GetType().ToString();
+
+                    if (_type == "Jayrock.Json.JsonObject")
+                    {
+                        JsonObject o2 = (JsonObject) _option[name];
+                        JsonObject o3 = new JsonObject();
+                        foreach(string name2 in o2.Names)
+                        {
+                            if (name2 == "action_package")
+                            {
+                                ;
+                                string system_type = "BUY";
+                                JsonArray v_result = get_package_info_a(client_id, system_type, null, device_id, null, null, sw_version, "N", "P");
+                                List<JsonObject> _la = new List<JsonObject>();
+                                foreach (JsonObject a in v_result) { _la.Add(a); }
+                                JsonObject result = ((from a in _la where a["package_id"].ToString() == o2[name2].ToString() select a).Count() > 0) ? (from a in _la where a["package_id"].ToString() == o2[name2].ToString() select a).First() : null;
+                                foreach (string a in result.Names)
+                                {
+                                    if (o3.Contains(a))
+                                    { }
+                                    else { o3.Add(a, result[a]); }
+                                }
+
+                            }                          
+                            else if (o2[name2].ToString()=="remove")
+                            { if (o3.Contains(name2)) { o3.Remove(name2); } } else
+                            { o3.Add(name2, o2[name2]); }
+
+                        }
+                        _option[name] = o3;
+                    };
+
+                    if (_result.Contains(name))
+                    {
+                        _result[name] = _option[name];
+                    }
+                    else
+                    {
+                        _result.Add(name, _option[name]);
+                    }
+
+                    if(name=="action_packge")
+                    {
+                        _result.Remove(name);
+                        string system_type = "BUY";
+                        JsonArray v_result = get_package_info_a(client_id, system_type, null, device_id, null, null, sw_version, "N", "P");
+                        List<JsonObject> _la = new List<JsonObject>();
+                        foreach (JsonObject a in v_result) { _la.Add(a); }
+                        JsonObject result = ((from a in _la where a["package_id"].ToString() == _option[name].ToString() select a).Count() > 0) ? (from a in _la where a["package_id"].ToString() == _result[name].ToString() select a).First() : null;
+                        foreach(string a in result.Names)
+                        { if (_result.Contains(a))
+                            { }
+                            else { _result.Add(a, result[a]); }
+                        }
+                      
+                    }
+
+                    if (_option[name].ToString() == "remove")
+                    { _result.Remove(name); }
+                    if (name == "display_order")
+                    {
+                        _result.Remove("display_order");
+                        _result.Add("display_order", Convert.ToInt64(_option[name]));
+                    }
+                }
+            }
+
+
+            return _result;
+    }
+       
+    
+    /// <summary>
+    /// 取所有方案
+    /// Sample :
+    ///  { "client_id" : "0080C8001002" }
+    /// [{"catalog_id":"HIDO","catalog_description":"Hido\u96fb\u5f71\u9928","package_name":"\u4e00\u500b\u6708","package_id":"M00001","price_description":"\u6bcf\u670899\u5143"},{"catalog_id":"IFILM","catalog_description":"iFilm\u96fb\u5f71\u9928","package_name":"\u4e00\u500b\u6708","package_id":"M00002","price_description":"\u6bcf\u670899\u5143"},{"catalog_id":"KOD","catalog_description":"\u7f8e\u83ef\u5361\u62c9OK","package_name":"\u4e00\u500b\u6708","package_id":"K00001","price_description":"\u6bcf\u670869\u5143"}]
+    /// </summary>
+    /// 
+
+    public List<package_info> get_package_info(string client_id, string system_type, string device_id,string imsi,string sw_version,string cal_type)
         {
             return get_package_info(client_id, system_type, 0, device_id, null,imsi,sw_version,"N",cal_type);
         }
@@ -2285,6 +2401,9 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
                             {
                                 package.Add(name, _option[name]);
                             }
+                     
+                            if (_option[name].ToString()=="remove")
+                            { package.Remove(name); } 
                             if (name=="display_order") {
                                 package.Remove("display_order");
                                 package.Add("display_order",Convert.ToInt64(_option[name]));
@@ -2313,7 +2432,7 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             bsm_package_special _data = new bsm_package_special();
             connectDB();
 
-            string sql = @"select pk_no id,x.src_id,proj_no,(start_date+8/24) start_date,(end_date+8/24) end_date,x.pc_option from bsm_package_special_setting x where type = 'PACKAGE' and status_flg in ('P','Z')";
+            string sql = @"select pk_no id,x.src_id,proj_no,(start_date+8/24) start_date,(end_date+8/24) end_date,x.pc_option from bsm_package_special_setting x where status_flg in ('P','Z')";
             OracleCommand cmd = new OracleCommand(sql, conn);
             OracleDataReader rd = cmd.ExecuteReader();
             while (rd.Read())
@@ -3396,10 +3515,21 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         /// </summary>
         [JsonRpcMethod("get_group_package_info")]
         [JsonRpcHelp("取得Package 資訊, by Group")]
-        public System.Collections.Generic.List<JsonObject> get_group_package_info(string token, string client_id, string device_id,string imsi,string ency_imsi,string sw_version)
+        public List<JsonObject> get_group_package_info(string token, string client_id, string device_id, string imsi, string ency_imsi, string sw_version)
         {
             List<JsonObject> v_result = new List<JsonObject>();
-            v_result = _base.get_group_package_info(token, client_id, device_id,imsi,sw_version);
+            v_result = _base.get_group_package_info(token, client_id, device_id, imsi, sw_version);
+            logger.Info(JsonConvert.ExportToString(v_result));
+
+            return v_result;
+        }
+
+        [JsonRpcMethod("get_group_package_info_j")]
+        [JsonRpcHelp("取得Package 資訊, by Group ,json object")]
+        public JsonObject get_group_package_info_j(string token, string client_id, string device_id, string imsi, string ency_imsi, string sw_version)
+        {
+            JsonObject v_result = new JsonObject();
+            v_result = _base.get_group_package_info_j(token, client_id, device_id, imsi, sw_version);
             logger.Info(JsonConvert.ExportToString(v_result));
 
             return v_result;
@@ -3616,7 +3746,9 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         [JsonRpcHelp("取得get_message")]
         public string get_message(string message_type, string sw_version)
         {
-            return _base.get_message(message_type, sw_version);
+            string result = _base.get_message(message_type, sw_version);
+            logger.Info(result);
+            return result;
         }
 
         [JsonRpcMethod("refresh")]
