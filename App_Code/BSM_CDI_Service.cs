@@ -882,8 +882,8 @@ namespace BSM
                 }
 
                 if (purchase_info.card_number.Substring(0, 1) == "3")
-                { purchase_info.card_type = "JBC"; }
-                if ((purchase_info.card_type == "VISA" && purchase_info.card_number.Substring(0, 1) != "4") || (purchase_info.card_type == "MASTER" && purchase_info.card_number.Substring(0, 1) != "5") || (purchase_info.card_type == "JBC" && purchase_info.card_number.Substring(0, 1) != "3"))
+                { purchase_info.card_type = "JCB"; }
+                if ((purchase_info.card_type == "VISA" && purchase_info.card_number.Substring(0, 1) != "4") || (purchase_info.card_type == "MASTER" && purchase_info.card_number.Substring(0, 1) != "5") || (purchase_info.card_type == "JCB" && purchase_info.card_number.Substring(0, 1) != "3"))
                 {
                     result.result_code = "BSM-00306";
                     result.result_message = "信用卡種類錯誤";
