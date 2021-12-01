@@ -468,12 +468,12 @@ namespace BSM
                         return result;
                     }
 
-                    if ((purchase_info.card_type == null) || (purchase_info.card_type == ""))
+                    /*if ((purchase_info.card_type == null) || (purchase_info.card_type == ""))
                     {
                         result.result_code = "BSM-00303";
                         result.result_message = "未輸入信用卡種類";
                         return result;
-                    }
+                    } */
 
 
                     if ((purchase_info.card_expiry == null) || (purchase_info.card_expiry == ""))
@@ -491,14 +491,18 @@ namespace BSM
                         return result;
                     }
 
-                    if (purchase_info.card_number.Substring(0, 1) != "4" && purchase_info.card_number.Substring(0, 1) != "5")
+                    if (purchase_info.card_number.Substring(0, 1) != "3" && purchase_info.card_number.Substring(0, 1) != "4" && purchase_info.card_number.Substring(0, 1) != "5")
                     {
-                        result.result_code = "BSM-00307";
+                        result.result_code = "BSM-00306";
                         result.result_message = "信用卡卡號錯誤";
                         return result;
                     }
                     if (purchase_info.card_number.Substring(0, 1) == "3")
                     { purchase_info.card_type = "JCB"; }
+                    if (purchase_info.card_number.Substring(0, 1) == "4")
+                    { purchase_info.card_type = "VISA"; }
+                    if (purchase_info.card_number.Substring(0, 1) == "5")
+                    { purchase_info.card_type = "MASTER"; }
                     if ((purchase_info.card_type == "VISA" && purchase_info.card_number.Substring(0, 1) != "4") || (purchase_info.card_type == "MASTER" && purchase_info.card_number.Substring(0, 1) != "5") || (purchase_info.card_type == "JCB" && purchase_info.card_number.Substring(0, 1) != "3"))
                     {
                         result.result_code = "BSM-00306";
