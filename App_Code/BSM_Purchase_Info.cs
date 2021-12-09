@@ -3493,17 +3493,23 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         public JsonArray get_package_info(string token,string group_id, string client_id, string device_id,string imsi,string sw_version,string cal_type)
         {
             JsonArray v_result;
-            if (group_id == null)
+            try
             {
-                v_result = _base.get_package_info_a(client_id, "BUY", 0, device_id, null, imsi, sw_version, "N", cal_type);
+                if (group_id == null)
+                {
+                    v_result = _base.get_package_info_a(client_id, "BUY", 0, device_id, null, imsi, sw_version, "N", cal_type);
+                }
+                else
+                {
+                    v_result = _base.get_package_info_a(client_id, "BUY", 0, device_id, group_id, imsi, sw_version, "N", cal_type);
+                }
+                logger.Info(v_result);
+                logger.Info("Sccess");
+            
+            }catch(Exception e)
+            { logger.Info(e.Message);
+                throw e;
             }
-            else
-            {
-                v_result = _base.get_package_info_a(client_id, "BUY", 0, device_id, group_id, imsi, sw_version, "N",cal_type);
-            }
-            logger.Info(v_result);
-            logger.Info("Sccess");
-
             return v_result;
         }
 
@@ -3518,8 +3524,14 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         public List<JsonObject> get_group_package_info(string token, string client_id, string device_id, string imsi, string ency_imsi, string sw_version)
         {
             List<JsonObject> v_result = new List<JsonObject>();
-            v_result = _base.get_group_package_info(token, client_id, device_id, imsi, sw_version);
-            logger.Info(JsonConvert.ExportToString(v_result));
+            try
+            {
+                v_result = _base.get_group_package_info(token, client_id, device_id, imsi, sw_version);
+                logger.Info(JsonConvert.ExportToString(v_result));
+            }catch(Exception e)
+            { logger.Info(e.Message);
+                throw e;
+            }
 
             return v_result;
         }
@@ -3529,9 +3541,15 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         public JsonObject get_group_package_info_j(string token, string client_id, string device_id, string imsi, string ency_imsi, string sw_version)
         {
             JsonObject v_result = new JsonObject();
+            try { 
             v_result = _base.get_group_package_info_j(token, client_id, device_id, imsi, sw_version);
             logger.Info(JsonConvert.ExportToString(v_result));
-
+            }
+            catch (Exception e)
+            {
+                logger.Info(e.Message);
+                throw e;
+            }
             return v_result;
         }
 
