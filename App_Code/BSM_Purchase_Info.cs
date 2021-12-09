@@ -2015,7 +2015,8 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
             _acc_info.purchase_dtls = get_purchase_info_oracle(client_id);
             _acc_info.services = get_catalog_info_oracle(client_id, device_id, null);
             _acc_info.activation_code = get_activation_code_oracle(client_id);
-            return _acc_info;
+                account_collection.ReplaceOne(doc => doc._id == _acc_info._id, _acc_info, new UpdateOptions() { IsUpsert = true });
+                return _acc_info;
             }
 
        //     account_collection.Save(_acc_info);
