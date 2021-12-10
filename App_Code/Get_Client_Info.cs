@@ -423,7 +423,7 @@
 
     public class BSM_Info_Service_base
     {
-        OracleConnection conn;
+        public OracleConnection conn;
 
         public BSM_Info_Service_base(string connString)
         {

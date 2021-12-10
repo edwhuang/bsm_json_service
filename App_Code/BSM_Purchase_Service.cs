@@ -83,7 +83,7 @@ namespace BSM
 
     public class BSM_Purchase_Service : JsonRpcHandler
     {
-        OracleConnection conn;
+        public OracleConnection conn;
         MessageQueue MsgQ_Active;
         MessageQueue MsgQ_Purchase;
         public string PayGatewayInfo;

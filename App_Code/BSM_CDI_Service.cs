@@ -59,7 +59,7 @@ namespace BSM
 
     public class BSM_CDI_Service : JsonRpcHandler
     {
-        OracleConnection conn;
+        public OracleConnection conn;
         MessageQueue MsgQ_register;
         MessageQueue MsgQ_activate;
         MessageQueue MsgQ_tstar;

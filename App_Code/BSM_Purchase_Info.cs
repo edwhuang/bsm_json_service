@@ -736,7 +736,7 @@ namespace BSM_Info
     public class BSM_Info_Service_base
     {
 
-        OracleConnection conn;
+        public OracleConnection conn;
 
         private string _MongoDbconnectionString;
         private string _MongoDbconnectionString_package;
@@ -3494,22 +3494,41 @@ where a.cat_id=b.cat_id and b.status_flg='P'";
         public JsonArray get_package_info(string token,string group_id, string client_id, string device_id,string imsi,string sw_version,string cal_type)
         {
             JsonArray v_result;
-            try
+            v_result = new JsonArray();
+            int retry_cnt_down;
+            retry_cnt_down = 5;
+            while (retry_cnt_down > 0)
             {
-                if (group_id == null)
+                try
                 {
-                    v_result = _base.get_package_info_a(client_id, "BUY", 0, device_id, null, imsi, sw_version, "N", cal_type);
+                   
+                    if (group_id == null)
+                    {
+                        v_result = _base.get_package_info_a(client_id, "BUY", 0, device_id, null, imsi, sw_version, "N", cal_type);
+                    }
+                    else
+                    {
+                        v_result = _base.get_package_info_a(client_id, "BUY", 0, device_id, group_id, imsi, sw_version, "N", cal_type);
+                    }
+                    logger.Info(v_result);
+                    logger.Info("Sccess");
+                    retry_cnt_down = 0;
+                    _base.conn.Close();
+
                 }
-                else
+                catch (Exception e)
                 {
-                    v_result = _base.get_package_info_a(client_id, "BUY", 0, device_id, group_id, imsi, sw_version, "N", cal_type);
+                    _base.conn.Close();
+                    logger.Info(e.Message);
+
+                    if (e.Message.IndexOf("ORA") > 0)
+                    { retry_cnt_down--;  }
+                    else
+                    {
+                        retry_cnt_down = 0;
+                        throw e;
+                    }
                 }
-                logger.Info(v_result);
-                logger.Info("Sccess");
-            
-            }catch(Exception e)
-            { logger.Info(e.Message);
-                throw e;
             }
             return v_result;
         }
